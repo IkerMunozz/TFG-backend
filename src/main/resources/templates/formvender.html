@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subir producto</title>
+    <link rel="stylesheet" href="css/formvender.css">
+    <link rel="icon" type="image/png" href="img/logotitle.jpg">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+
+</head>
+<body>
+  <header>
+    <div class="header-top">
+      <a href="index.html">
+        <img src="img/logo.png" alt="logo">
+      </a>      <nav>
+        <a href="#" id="toggle-favorites">Favoritos</a>
+        <a href="#" id="toggle-carrito">Carrito</a>
+        <a href="perfil.html">Mi Perfil</a>
+        <a href="puntosEnvio.html">Puntos de envío</a>
+        <button class="search-button"><a href="formvender.html">Vender ya</a></button>
+      </nav>
+    </div>
+  </header>
+  <div id="favorites-panel" class="favorites-panel hidden">
+    <div class="favorites-header">
+      <h3>Mis favoritos</h3>
+      <button id="close-favorites" class="close-button">×</button>
+    </div>
+    <div class="favorites-list" id="favorites-list">
+      
+      <!-- Producto 1 -->
+      <div class="favorite-item">
+        <img src="img/libro.webp" alt="Producto">
+        <div class="favorite-details">
+          <h4>Zapatillas Nike</h4>
+          <p>Como nuevas, talla 42</p>
+          <span class="price">45 €</span>
+          <div class="favorite-buttons">
+            <button class="delete-favorite">Eliminar</button>
+            <button class="add-to-cart-favorites">Añadir al carrito</button>
+          </div>
+        </div>
+      </div>
+  
+      <!-- Producto 2 -->
+      <div class="favorite-item">
+        <img src="img/libro.webp" alt="Producto">
+        <div class="favorite-details">
+          <h4>Zapatillas Adidas</h4>
+          <p>Usadas, talla 40</p>
+          <span class="price">30 €</span>
+          <div class="favorite-buttons">
+            <button class="delete-favorite">Eliminar</button>
+            <button class="add-to-cart-favorites">Añadir al carrito</button>
+          </div>
+        </div>
+      </div>
+  
+    </div>
+  </div>
+  <div id="carrito-panel" class="carrito-panel hidden">
+    <div class="carrito-header">
+      <h3>Mi Carrito</h3>
+      <button id="close-carrito" class="close-button">×</button>
+    </div>
+    <div class="carrito-list" id="carrito-list">
+      
+      <!-- Producto 1 -->
+      <div class="carrito-item">
+        <img src="img/libro.webp" alt="Producto">
+        <div class="carrito-details">
+          <h4>Zapatillas Nike</h4>
+          <p>Como nuevas, talla 42</p>
+          <span class="price">45 €</span>
+          <div class="carrito-buttons">
+            <button class="delete-favorite">Eliminar</button>
+          </div>
+        </div>
+      </div>
+  
+      <!-- Producto 2 -->
+      <div class="carrito-item">
+        <img src="img/libro.webp" alt="Producto">
+        <div class="carrito-details">
+          <h4>Zapatillas Adidas</h4>
+          <p>Usadas, talla 40</p>
+          <span class="price">30 €</span>
+          <div class="carrito-buttons">
+            <button class="delete-favorite">Eliminar</button>
+          </div>
+        </div>
+      </div>
+      <button class="realizar-compra">Realizar compra</button>
+    </div>
+  </div>
+  <section class="vender-section">
+    <div class="vender-card">
+      <h2>Vender un producto</h2>
+      <form action="/subir-producto" method="POST" enctype="multipart/form-data">
+        <div class="vender-group">
+          <label for="nombre">Nombre del producto</label>
+          <input type="text" id="nombre" name="nombre" placeholder="Ej. Zapatillas deportivas" required />
+        </div>
+  
+        <div class="vender-group">
+          <label for="descripcion">Descripción</label>
+          <input type="text" id="descripcion" name="descripcion" placeholder="Describe tu producto" required />
+        </div>
+  
+        <div class="vender-group">
+          <label for="precio">Precio (€)</label>
+          <input type="number" id="precio" name="precio" step="0.01" placeholder="Ej. 39.99" required />
+        </div>
+  
+        <div class="vender-group">
+          <label for="imagen">Imagen del producto</label>
+          <input type="file" id="imagen" name="imagen" accept="image/*" required />
+        </div>
+  
+        <button type="submit">Publicar producto</button>
+      </form>
+    </div>
+  </section>
+      
+  <footer class="footer">
+    <div class="footer-top">
+      <div class="footer-logo">
+        <img src="img/logo.png" alt="Logo" />
+        <p>© Swappy. Todos los derechos reservados</p>
+      </div>
+  
+      <div class="footer-links">
+        <div>
+          <h4>Swappy</h4>
+          <ul>
+            <li><a href="#">Quiénes somos</a></li>
+            <li><a href="#">Cómo funciona</a></li>
+            <li><a href="#">Brand Book</a></li>
+            <li><a href="#">Prensa</a></li>
+            <li><a href="#">Empleo</a></li>
+            <li><a href="#">Sostenibilidad</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4>Soporte</h4>
+          <ul>
+            <li><a href="#">Centro de ayuda</a></li>
+            <li><a href="#">Normas de la comunidad</a></li>
+            <li><a href="#">Consejos de seguridad</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4>Legal</h4>
+          <ul>
+            <li><a href="#">Aviso legal</a></li>
+            <li><a href="#">Condiciones de uso</a></li>
+            <li><a href="#">Política de privacidad</a></li>
+            <li><a href="#">Política de Cookies</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4>Motor</h4>
+          <ul>
+            <li><a href="#">Particular</a></li>
+            <li><a href="#">Profesional</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4>Swappy Pro</h4>
+          <ul>
+            <li><a href="#">Impulsa tu negocio</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  
+  <div class="store-links">
+    <a href="#"><i class="fab fa-apple"></i> Apple Store</a>
+    <a href="#"><i class="fab fa-google-play"></i> Google Play</a>
+    <a href="#"><i class="fas fa-mobile-alt"></i> AppGallery</a>
+  </div>
+
+<footer/>
+
+<script src="js/script.js"></script>
+<script src="js/carrito.js"></script>
+</body>
+</html>
