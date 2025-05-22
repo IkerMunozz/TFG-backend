@@ -32,7 +32,6 @@ public class Token {
     @Column(name = "telefono", length = 20)
     private String telefono;
 
-    @ColumnDefault("CURRENT_TIMESTAMP")
     @Column(name = "fecha_inicio")
     private Instant fechaInicio;
 
