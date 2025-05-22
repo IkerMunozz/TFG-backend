@@ -129,12 +129,12 @@ public Producto addProducto(Producto producto, String tokenHeader, String rutaIm
 
     producto.setIdvendedor(vendedor);
 
-    String scriptPath = "./scripts/detectar_objeto.py"; 
+    String scriptPath = "/app/python/detectar_objeto.py"; 
 
 
     try {
         ProcessBuilder pb = new ProcessBuilder(
-                "python",
+                "python3",
                 scriptPath,
                 rutaImagenAbsoluta // ← usamos la ruta real del disco
         );
