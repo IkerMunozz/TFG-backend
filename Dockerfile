@@ -12,7 +12,7 @@ RUN mvn clean package -DskipTests
 # Etapa 2: Imagen final con Java 21 y Python 3
 FROM eclipse-temurin:21-jdk
 
-# Instalar Python
+# Instalar Python y dependencias necesarias
 RUN apt-get update && \
     apt-get install -y python3 python3-pip && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
@@ -23,8 +23,12 @@ WORKDIR /app
 RUN mkdir -p /app/uploads && \
     chmod 777 /app/uploads
 
-# Copiar scripts Python
-COPY src/main/resources/scripts /app/scripts
+# Copiar scripts Python y el modelo
+COPY src/main/resources/python /app/python
+COPY src/main/resources/model.pt /app/model.pt
+
+# Instalar dependencias de Python
+RUN pip3 install ultralytics
 
 # Copiar JAR construido
 COPY --from=builder /app/target/*.jar app.jar

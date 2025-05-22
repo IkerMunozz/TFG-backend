@@ -130,7 +130,7 @@ public Producto addProducto(Producto producto, String tokenHeader, String rutaIm
     producto.setIdvendedor(vendedor);
 
     // Ruta del script en el contenedor Docker
-    String scriptPath = "/app/scripts/detectar_objeto.py";
+    String scriptPath = "/app/python/detectar_objeto.py";
 
     try {
         // Verificar que el archivo existe
@@ -139,11 +139,35 @@ public Producto addProducto(Producto producto, String tokenHeader, String rutaIm
             throw new TiendaException("No se encontró el script de detección en: " + scriptPath, HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
+        // Verificar que el modelo existe
+        File modelFile = new File("/app/model.pt");
+        if (!modelFile.exists()) {
+            throw new TiendaException("No se encontró el modelo YOLO en: /app/model.pt", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+
         // Verificar que la imagen existe
         File imagenFile = new File(rutaImagenAbsoluta);
         if (!imagenFile.exists()) {
             throw new TiendaException("No se encontró la imagen en: " + rutaImagenAbsoluta, HttpStatus.BAD_REQUEST);
         }
+
+        // Verificar permisos de lectura
+        if (!imagenFile.canRead()) {
+            throw new TiendaException("No se puede leer la imagen en: " + rutaImagenAbsoluta, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+
+        // Verificar tamaño del archivo
+        long fileSize = imagenFile.length();
+        if (fileSize == 0) {
+            throw new TiendaException("La imagen está vacía", HttpStatus.BAD_REQUEST);
+        }
+
+        // Log de información de la imagen
+        System.out.println("Información de la imagen:");
+        System.out.println("Ruta: " + rutaImagenAbsoluta);
+        System.out.println("Tamaño: " + fileSize + " bytes");
+        System.out.println("Permisos de lectura: " + imagenFile.canRead());
+        System.out.println("Permisos de escritura: " + imagenFile.canWrite());
 
         ProcessBuilder pb = new ProcessBuilder(
                 "python3",
@@ -153,21 +177,26 @@ public Producto addProducto(Producto producto, String tokenHeader, String rutaIm
         pb.redirectErrorStream(true);
         Process process = pb.start();
 
+        // Capturar tanto la salida estándar como los errores
         BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
         String line;
         while ((line = reader.readLine()) != null) {
+            System.out.println("Salida del script Python: " + line);
             salidaPython.append(line).append("\n");
         }
 
         int exitCode = process.waitFor();
+        System.out.println("Código de salida del script Python: " + exitCode);
 
         if (exitCode == 1) {
-            throw new TiendaException("No se ha detectado ningún producto en la imagen. Ruta de la imagen: " + rutaImagenAbsoluta, HttpStatus.BAD_REQUEST);
+            throw new TiendaException("No se ha detectado ningún producto en la imagen. Ruta de la imagen: " + rutaImagenAbsoluta + "\nSalida del script: " + salidaPython.toString(), HttpStatus.BAD_REQUEST);
         } else if (exitCode != 0) {
             throw new TiendaException("Error al procesar la imagen: " + salidaPython.toString(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
     } catch (IOException | InterruptedException e) {
+        System.out.println("Error ejecutando el script: " + e.getMessage());
+        e.printStackTrace();
         throw new TiendaException("Error ejecutando el script de detección: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
