@@ -26,11 +26,11 @@ RUN mkdir -p /app/uploads && \
 # Copiar scripts Python
 COPY src/main/resources/python /app/python
 
-# Instalar dependencias de Python paso a paso
+# Instalar dependencias de Python paso a paso con versiones específicas
 RUN pip3 install --upgrade pip && \
-    pip3 install --no-cache-dir numpy && \
-    pip3 install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cpu && \
-    pip3 install --no-cache-dir ultralytics
+    pip3 install --no-cache-dir numpy==1.24.3 && \
+    pip3 install --no-cache-dir torch==2.0.1 torchvision==0.15.2 --index-url https://download.pytorch.org/whl/cpu && \
+    pip3 install --no-cache-dir ultralytics==8.0.0
 
 # Descargar el modelo YOLO directamente
 RUN wget https://github.com/ultralytics/assets/releases/download/v0.0.0/yolov8n.pt -O /app/python/yolov8n.pt
@@ -38,8 +38,10 @@ RUN wget https://github.com/ultralytics/assets/releases/download/v0.0.0/yolov8n.
 # Copiar JAR construido
 COPY --from=builder /app/target/*.jar app.jar
 
-# Configurar variables de entorno para Java
+# Configurar variables de entorno para Java y Python
 ENV JAVA_OPTS="-Xmx512m -Xms256m"
+ENV PYTHONUNBUFFERED=1
+ENV PIP_NO_CACHE_DIR=1
 
 # Verificar la instalación
 RUN echo "Verificando instalación..." && \
