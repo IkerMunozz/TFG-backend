@@ -20,7 +20,7 @@ public interface TiendaServicio {
     Optional<Token> obtenerTokenPorValor(String token);
     Grupo insertarGrupo(String email);
     Optional<Token> insertarToken(Token token);
-    Producto addProducto(Producto producto, String emailVendedor);
+    Producto addProducto(Producto producto, String tokenHeader, String rutaImagenAbsoluta, StringBuilder salidaPython);
     List<ProductoDTO> getAllProductosDTO();
     void deleteProducto(Integer idproducto);
     Producto updateProducto(int idproducto, Producto nuevosDatos);
@@ -34,6 +34,15 @@ public interface TiendaServicio {
     void agregarProductoAFavoritos(Integer idProducto, String tokenHeader);
     List<FavoritoDTO> obtenerProductosFavoritos(String tokenHeader);
     void deleteProductoFavorito(int idproducto, String tokenHeader);
-
+    boolean productoYaEnCarrito(String tokenHeader, Integer idProducto);
+    boolean productoYaEnFavoritos(String tokenHeader, Integer idProducto);
+    void eliminarProductoConReferencias(Integer idproducto);
+    ProductoDTO obtenerProductoPorId(Integer id);
+    Socio obtenerSocioPorToken(String token);
+    int contarArticulosPublicados(String token);
+    int contarArticulosVendidos(String token);
+    int contarArticulosEnVenta(String token);
+    int contarArticulosComprados(String token);
+    Socio obtenerSocioPorId(Integer idSocio);
 }
 

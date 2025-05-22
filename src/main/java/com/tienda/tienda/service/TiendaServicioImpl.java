@@ -12,6 +12,7 @@ import jakarta.persistence.criteria.CriteriaBuilder.In;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.method.P;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -110,61 +111,54 @@ public class TiendaServicioImpl implements TiendaServicio {
 }
 
 
-    @Transactional
-    @Override
-    public Producto addProducto(Producto producto, String tokenHeader) {
+@Transactional
+@Override
+public Producto addProducto(Producto producto, String tokenHeader, String rutaImagenAbsoluta, StringBuilder salidaPython) {
 
-        // 1. Extraer el token real (sin "Bearer ")
-        String token = tokenHeader.replace("Bearer ", "").trim();
+    String token = tokenHeader.replace("Bearer ", "").trim();
 
-        // 2. Buscar el token en la base de datos
-        Optional<Token> tokenOpt = daoToken.findByValue(token);
-        if (tokenOpt.isEmpty()) {
-            throw new TiendaException("Token inválido o expirado", HttpStatus.UNAUTHORIZED);
-        }
-
-        // 3. Obtener el email del vendedor desde el token
-        String emailVendedor = tokenOpt.get().getEmail();
-
-        // 4. Buscar el usuario con ese email
-        Usuario vendedor = daoUsuario.findByEmailWithLock(emailVendedor)
-                .orElseThrow(() -> new TiendaException("Vendedor no encontrado", HttpStatus.NOT_FOUND));
-
-        // 5. Asociar el vendedor al producto
-        producto.setIdvendedor(vendedor);
-
-        // 6. Ejecutar script Python
-        String imagePath = producto.getImagen();
-        try {
-            ProcessBuilder pb = new ProcessBuilder(
-                    "python",
-                    "src/main/resources/python/detectar_objeto.py",
-                    imagePath
-            );
-            pb.redirectErrorStream(true);
-            Process process = pb.start();
-
-            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            String line;
-            while ((line = reader.readLine()) != null) {
-                System.out.println("[Python] " + line);
-            }
-
-            int exitCode = process.waitFor();
-
-            if (exitCode == 1) {
-                throw new TiendaException("No se ha detectado ningún producto en la imagen.", HttpStatus.BAD_REQUEST);
-            } else if (exitCode != 0) {
-                throw new TiendaException("Error al procesar la imagen.", HttpStatus.INTERNAL_SERVER_ERROR);
-            }
-
-        } catch (IOException | InterruptedException e) {
-            throw new TiendaException("Error ejecutando el script de detección", HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-
-        // 7. Guardar y retornar el producto
-        return daoProducto.save(producto);
+    Optional<Token> tokenOpt = daoToken.findByValue(token);
+    if (tokenOpt.isEmpty()) {
+        throw new TiendaException("Token inválido o expirado", HttpStatus.UNAUTHORIZED);
     }
+
+    String emailVendedor = tokenOpt.get().getEmail();
+
+    Usuario vendedor = daoUsuario.findByEmailWithLock(emailVendedor)
+            .orElseThrow(() -> new TiendaException("Vendedor no encontrado", HttpStatus.NOT_FOUND));
+
+    producto.setIdvendedor(vendedor);
+
+    try {
+        ProcessBuilder pb = new ProcessBuilder(
+                "python",
+                "src/main/resources/python/detectar_objeto.py",
+                rutaImagenAbsoluta // ← usamos la ruta real del disco
+        );
+        pb.redirectErrorStream(true);
+        Process process = pb.start();
+
+        BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+        String line;
+        while ((line = reader.readLine()) != null) {
+            salidaPython.append(line).append("\n");
+        }
+
+        int exitCode = process.waitFor();
+
+        if (exitCode == 1) {
+            throw new TiendaException("No se ha detectado ningún producto en la imagen.", HttpStatus.BAD_REQUEST);
+        } else if (exitCode != 0) {
+            throw new TiendaException("Error al procesar la imagen.", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+
+    } catch (IOException | InterruptedException e) {
+        throw new TiendaException("Error ejecutando el script de detección", HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    return daoProducto.save(producto);
+}
+
 
 
     
@@ -286,6 +280,7 @@ public class TiendaServicioImpl implements TiendaServicio {
                     return new CarritoDTO(
                             p.getId(),
                             p.getNombre(),
+                            p.getDescripcion(),
                             p.getPrecio(),
                             p.getImagen()
                     );
@@ -293,6 +288,25 @@ public class TiendaServicioImpl implements TiendaServicio {
                 .collect(Collectors.toList());
     }
 
+    public boolean productoYaEnCarrito(String tokenHeader, Integer idProducto) {
+        String token = tokenHeader.replace("Bearer ", "").trim();
+    
+        Optional<Token> tokenOpt = daoToken.findByValue(token);
+        if (tokenOpt.isEmpty()) {
+            throw new TiendaException("Token inválido o expirado", HttpStatus.UNAUTHORIZED);
+        }
+    
+        String emailUsuario = tokenOpt.get().getEmail();
+        Socio socio = daoSocio.findByEmail(emailUsuario)
+                .orElseThrow(() -> new TiendaException("Usuario no encontrado", HttpStatus.NOT_FOUND));
+    
+        List<Carrito> carritoList = daoCarrito.findByIdusuario(socio);
+    
+        return carritoList.stream()
+                .anyMatch(c -> c.getIdproducto().getId().equals(idProducto));
+    }
+    
+    
     @Override
     public Compra crearCompra(String tokenHeader) {
         // 1. Extraer el token real (sin "Bearer ")
@@ -337,6 +351,15 @@ public class TiendaServicioImpl implements TiendaServicio {
             // Marcar el producto como vendido
             producto.setVendido(true);
             daoProducto.save(producto);  // Guardar el estado actualizado del producto
+
+                socio.setSaldo(socio.getSaldo().subtract(producto.getPrecio()));
+    
+                Usuario usuario = producto.getIdvendedor();
+                Socio vendedor = daoSocio.findByEmail(usuario.getEmail())
+                        .orElseThrow(() -> new TiendaException("Vendedor no encontrado", HttpStatus.NOT_FOUND));
+                vendedor.setSaldo(vendedor.getSaldo().add(producto.getPrecio()));
+                daoSocio.save(vendedor);
+
         }
 
         // 8. Crear la compra y asignarle el comprador
@@ -391,16 +414,16 @@ public class TiendaServicioImpl implements TiendaServicio {
         daoCarrito.delete(item);
     }
 
-    @Override
+   @Override
     public void agregarSaldo(Integer idSocio, BigDecimal saldo) {
         
         Socio socio = daoSocio.findById(idSocio)
                 .orElseThrow(() -> new TiendaException("Socio no encontrado", HttpStatus.NOT_FOUND));
         
-        socio.setSaldo(socio.getSaldo().add(saldo));
+        socio.setSaldo(saldo); 
         daoSocio.save(socio);
-        
     }
+
 
     @Override
     public List<ProductoDTO> obtenerProductosPorEstadoYEmail(String tokenHeader, boolean vendido) {
@@ -417,11 +440,6 @@ public class TiendaServicioImpl implements TiendaServicio {
 
         try {
             List<ProductoDTO> productos = daoProducto.findByIdvendedorAndVendido(usuario, vendido);
-
-            if (productos.isEmpty()) {
-                throw new TiendaException("No se encontraron productos " + (vendido ? "vendidos" : "en venta"), HttpStatus.NOT_FOUND);
-            }
-
             return productos;
 
         } catch (Exception e) {
@@ -488,6 +506,7 @@ public List <FavoritoDTO> obtenerProductosFavoritos(String tokenHeader) {
                 return new FavoritoDTO(
                         p.getId(),
                         p.getNombre(),
+                        p.getDescripcion(),
                         p.getPrecio(),
                         p.getImagen()
                 );
@@ -515,6 +534,95 @@ public List <FavoritoDTO> obtenerProductosFavoritos(String tokenHeader) {
         daoFavorito.delete(item);
     }
 
+        public boolean productoYaEnFavoritos(String tokenHeader, Integer idProducto) {
+        String token = tokenHeader.replace("Bearer ", "").trim();
+    
+        Optional<Token> tokenOpt = daoToken.findByValue(token);
+        if (tokenOpt.isEmpty()) {
+            throw new TiendaException("Token inválido o expirado", HttpStatus.UNAUTHORIZED);
+        }
+    
+        String emailUsuario = tokenOpt.get().getEmail();
+        Socio socio = daoSocio.findByEmail(emailUsuario)
+                .orElseThrow(() -> new TiendaException("Usuario no encontrado", HttpStatus.NOT_FOUND));
+    
+        List<Favorito> favoritoList = daoFavorito.findByIdusuario(socio);
+    
+        return favoritoList.stream()
+                .anyMatch(c -> c.getIdproducto().getId().equals(idProducto));
+    }
+
+
+  @Transactional
+        public void eliminarProductoConReferencias(Integer idproducto) {
+            daoCarrito.deleteById_Idproducto(idproducto);
+            daoFavorito.deleteById_Idproducto(idproducto);
+            daoProducto.deleteById(idproducto);
+        }
+
+      public Socio obtenerSocioPorToken(String token) throws TiendaException {
+            Token tokenEntity = daoToken.findByValue(token)
+                .orElseThrow(() -> new TiendaException("Token no válido", HttpStatus.UNAUTHORIZED));
+
+        return daoSocio.findByEmail(tokenEntity.getEmail())
+                .orElseThrow(() -> new TiendaException("No se encontró un socio con ese email", HttpStatus.NOT_FOUND));
+        }
+
+
+     public String obtenerEmailDesdeToken(String token) throws TiendaException {
+    Token tokenEntity = daoToken.findByValue(token)
+        .orElseThrow(() -> new TiendaException("Token no válido", HttpStatus.UNAUTHORIZED));
+    return tokenEntity.getEmail();
+    }
+
+    
+
+        public int contarArticulosPublicados(String token) {
+            String email = obtenerEmailDesdeToken(token); 
+            return daoProducto.contarArticulosPublicados(email);
+        }
+
+        public int contarArticulosVendidos(String token) {
+            String email = obtenerEmailDesdeToken(token); 
+            return daoProducto.contarArticulosVendidos(email);
+        }
+
+        public int contarArticulosEnVenta(String token) {
+            String email = obtenerEmailDesdeToken(token); 
+            return daoProducto.contarArticulosEnVenta(email);
+        }
+
+        public int contarArticulosComprados(String token) {
+            String email = obtenerEmailDesdeToken(token); 
+            return daoProducto.contarArticulosComprados(email);
+        }
+
+
+        @Override
+        public ProductoDTO obtenerProductoPorId(Integer id) {
+            Producto producto = daoProducto.findById(id)
+                .orElseThrow(() -> new TiendaException("Producto no encontrado", HttpStatus.NOT_FOUND));
+
+            return new ProductoDTO(
+                producto.getId(),
+                producto.getNombre(),
+                producto.getDescripcion(),
+                producto.getPrecio(),
+                producto.getImagen(),
+                producto.getIdvendedor().getEmail()
+            ); 
+        }
+
+        @Override
+        public Socio obtenerSocioPorId(Integer id) {
+            Socio socio = daoSocio.findById(id)
+                .orElseThrow(() -> new TiendaException("Socio no encontrado", HttpStatus.NOT_FOUND));        
+            
+            return socio;
+            
+        }
+
+        
 
 
 

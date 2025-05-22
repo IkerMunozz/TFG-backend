@@ -6,15 +6,19 @@ public class CarritoDTO {
     
     private Integer id;
     private String nombre;
+    private String descripcion;
     private BigDecimal precio;
     private String imagen;
 
-    public CarritoDTO(Integer id, String nombre, BigDecimal precio, String imagen) {
+    public CarritoDTO(Integer id, String nombre,String descripcion, BigDecimal precio, String imagen) {
         this.id = id;
         this.nombre = nombre;
+        this.descripcion = descripcion;
         this.precio = precio;
         this.imagen = imagen;
     }
+
+
 
     public Integer getId() {
         return id;
@@ -32,6 +36,13 @@ public class CarritoDTO {
         this.nombre = nombre;
     }
 
+    public String getDescripcion() {
+        return descripcion;
+    }
+
+    public void setDescripcion(String descripcion) {
+        this.descripcion = descripcion;
+    }
     public BigDecimal getPrecio() {
         return precio;
     }

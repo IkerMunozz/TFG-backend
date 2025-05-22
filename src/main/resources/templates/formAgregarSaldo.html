@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subir producto</title>
+    <link rel="stylesheet" href="/css/formvender.css">
+    <link rel="stylesheet" href="/css/formularios.css">
+    <link rel="icon" type="image/png" href="/img/logotitle.jpg">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+
+</head>
+<body>
+  <header>
+    <div class="header-top">
+      <a href="/api/v1/productos">
+        <img src="/img/logo.png" alt="logo">
+      </a>      
+      <nav>
+        <a href="#" id="toggle-favorites">Favoritos</a>
+        <a href="#" id="toggle-carrito">Carrito</a>
+        <a href="/api/v1/puntosEnvio">Puntos de envío</a>
+        <a href="/api/v1/perfil">Mi Perfil</a>
+        <a href="/api/registro/logout">Cerrar sesión</a>
+        <button class="search-button"><a href="/api/v1/agregarProducto">Vender ya</a></button>
+      </nav>
+    </div>
+  </header>
+  <div id="favorites-panel" class="favorites-panel hidden">
+    <div class="favorites-header">
+      <h3>Mis Favoritos</h3>
+      <button id="close-favorites" class="close-button">×</button>
+    </div>
+  
+    <div class="favorites-list" id="favorites-list">
+      <div th:if="${productosFavoritos != null}">
+        <div th:each="producto : ${productosFavoritos}" class="favorite-item">
+          <img th:src="@{'/uploads/' + ${producto.imagen}}" alt="Imagen del producto" />
+          <div class="favorite-details">
+            <h4 th:text="${producto.nombre}"></h4>
+            <p th:text="${producto.descripcion}"></p>
+            <span class="price" th:text="${producto.precio + ' €'}"></span>
+            <div class="favorite-buttons">
+              <form th:action="@{'/api/v1/productosFavoritos/' + ${producto.id}}" method="post">
+                <button type="submit" class="delete-favorite">Eliminar</button>
+              </form>
+              <form th:if="${session.token != null}" th:action="@{/api/v1/agregarProductoAlCarritoEnFavoritos/{idProducto}(idProducto=${producto.id})}" method="post">
+                <button type="submit" class="add-to-cart-favorites">Añadir al carrito</button>
+            </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div id="carrito-panel" class="carrito-panel hidden">
+    <div class="carrito-header">
+      <h3>Mi Carrito</h3>
+      <button id="close-carrito" class="close-button">×</button>
+    </div>
+  <div class="carrito-list" id="carrito-list">
+    <div th:if="${productosEnCarrito != null}">
+        <div th:each="producto : ${productosEnCarrito}" class="carrito-item">
+          <img th:src="@{'/uploads/' + ${producto.imagen}}" alt="Imagen del producto" />
+          <div class="carrito-details">
+                <h4 th:text="${producto.nombre}"></h4>
+                <p th:text="${producto.descripcion}"></p>
+                <span class="price" th:text="${producto.precio + ' €'}"></span>
+                <div class="carrito-buttons">
+                  <form th:action="@{'/api/v1/eliminarProductoDelCarrito/' + ${producto.id}}" method="post">
+                    <button type="submit" class="delete-favorite">Eliminar</button>
+                  </form>
+                </div>
+            </div>
+        </div>
+        <form th:action="@{/api/v1/crearCompra}" method="post">
+          <button type="submit" class="realizar-compra">Realizar compra</button>
+        </form>
+          </div>
+  </div>
+</div>
+<section class="vender-section">
+  <div class="vender-card">
+    <h2>Ingresar saldo</h2>
+    <form th:action="@{/api/v1/agregarSaldo/{idSocio}(idSocio=${socio.id})}" method="post">
+      <div>
+        <label for="saldo">Saldo:</label>
+        <input type="text" id="saldo" name="saldo" th:value="${socio.saldo}" required />
+      </div>
+      <button type="submit">Actualizar saldo</button>
+    </form>
+
+    <div class="registro-resultado">
+      <p th:if="${error}" th:text="${error}" class="error"></p>
+      <p th:if="${correcto}" th:text="${correcto}" class="correcto"></p>
+    </div>
+  </div>
+</section>
+
+</body>    
+<footer class="footer">
+    <div class="footer-top">
+      <div class="footer-logo">
+        <img src="/img/logo.png" alt="Logo" />
+        <p>© Swappy. Todos los derechos reservados</p>
+      </div>
+  
+      <div class="footer-links">
+        <div>
+          <h4>Swappy</h4>
+          <ul>
+            <li><a href="#">Quiénes somos</a></li>
+            <li><a href="#">Cómo funciona</a></li>
+            <li><a href="#">Brand Book</a></li>
+            <li><a href="#">Prensa</a></li>
+            <li><a href="#">Empleo</a></li>
+            <li><a href="#">Sostenibilidad</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4>Soporte</h4>
+          <ul>
+            <li><a href="#">Centro de ayuda</a></li>
+            <li><a href="#">Normas de la comunidad</a></li>
+            <li><a href="#">Consejos de seguridad</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4>Legal</h4>
+          <ul>
+            <li><a href="#">Aviso legal</a></li>
+            <li><a href="#">Condiciones de uso</a></li>
+            <li><a href="#">Política de privacidad</a></li>
+            <li><a href="#">Política de Cookies</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4>Motor</h4>
+          <ul>
+            <li><a href="#">Particular</a></li>
+            <li><a href="#">Profesional</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4>Swappy Pro</h4>
+          <ul>
+            <li><a href="#">Impulsa tu negocio</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  
+  <div class="store-links">
+    <a href="#"><i class="fab fa-apple"></i> Apple Store</a>
+    <a href="#"><i class="fab fa-google-play"></i> Google Play</a>
+    <a href="#"><i class="fas fa-mobile-alt"></i> AppGallery</a>
+  </div>
+
+  </footer>
+
+<script src="/js/script.js"></script>
+<script src="/js/carrito.js"></script>
+</body>
+</html>

@@ -40,17 +40,15 @@
 const toggleBtn = document.getElementById("toggle-favorites");
 const closeBtn = document.getElementById("close-favorites");
 const panel = document.getElementById("favorites-panel");
-const panelCarrito = document.getElementById("carrito-panel"); // Asegúrate de que este ID sea correcto
+const panelCarrito = document.getElementById("carrito-panel"); 
 
 toggleBtn.addEventListener("click", (e) => {
   e.preventDefault();
 
-  // Cierra el panel del carrito si está abierto
   if (!panelCarrito.classList.contains("hidden")) {
     panelCarrito.classList.add("hidden");
   }
 
-  // Alternar el panel de favoritos
   panel.classList.toggle("hidden");
 });
 
@@ -58,28 +56,139 @@ closeBtn.addEventListener("click", () => {
   panel.classList.add("hidden");
 });
 
-function addToFavorites({ nombre, descripcion, imagen, precio }) {
-  const list = document.getElementById("favorites-list");
-
-  const item = document.createElement("div");
-  item.className = "favorite-item";
-  item.innerHTML = `
-    <img src="${imagen}" alt="${nombre}">
-    <div class="favorite-details">
-      <h4>${nombre}</h4>
-      <p>${descripcion}</p>
-      <div class="favorite-price">€${precio}</div>
-      <button class="delete-favorite">Eliminar</button>
-    </div>
-  `;
-
-  // Eliminar al hacer clic en el botón
-  item.querySelector(".delete-favorite").addEventListener("click", () => {
-    list.removeChild(item);
+function agregarAFavoritos(idProducto) {
+  fetch(`/api/v1/agregarProductoAFavoritos/${idProducto}`, {
+    method: 'POST'
+  })
+  .then(async response => {
+    const data = await response.json().catch(() => ({}));
+    if (response.ok) {
+      mostrarAviso(data.correcto || "Producto agregado a favoritos.", 'correcto');
+      cargarFavoritos();
+    } else if (response.status === 409) {
+      mostrarAviso(data.error || "El producto ya está en favoritos.", 'error');
+    } else if (response.status === 401) {
+      mostrarAviso(data.error || "Debes iniciar sesión.", 'error');
+    } else {
+      mostrarAviso(data.error || "Error al agregar a favoritos.", 'error');
+    }
+  })
+  .catch(error => {
+    mostrarAviso("Error de red: " + error.message, 'error');
   });
-
-  list.appendChild(item);
 }
+
+function agregarAlCarritoDesdeFavoritos(idProducto) {
+  fetch(`/api/v1/agregarProductoAlCarritoEnFavoritos/${idProducto}`, {
+    method: 'POST'
+  })
+  .then(async response => {
+    const data = await response.json().catch(() => ({}));
+    if (response.ok) {
+      mostrarAviso(data.correcto || "Producto agregado al carrito y eliminado de favoritos.", 'correcto');
+      actualizarCarrito();
+      cargarFavoritos();  // refresca la lista de favoritos
+    } else if (response.status === 409) {
+      mostrarAviso(data.error || "El producto ya está en tu carrito.", 'error');
+    } else if (response.status === 401) {
+      mostrarAviso(data.error || "Debes iniciar sesión.", 'error');
+    } else {
+      mostrarAviso(data.error || "Error al agregar producto.", 'error');
+    }
+  })
+  .catch(error => {
+    mostrarAviso("Error de red: " + error.message, 'error');
+  });
+}
+
+function cargarFavoritos() {
+  fetch('/api/v1/productosFavoritos', { cache: "no-store" })
+    .then(res => {
+      if (!res.ok) {
+        if (res.status === 401) {
+          mostrarAviso("Debes iniciar sesión para ver favoritos.", 'error');
+        }
+        throw new Error("Error al cargar favoritos");
+      }
+      return res.json();
+    })
+    .then(favoritos => {
+      console.log("Favoritos recibidos:", favoritos);
+      const contenedor = document.getElementById('favorites-list');
+      contenedor.innerHTML = '';
+
+      if (!favoritos || favoritos.length === 0) {
+        contenedor.innerHTML = '<p>No tienes productos favoritos.</p>';
+        return;
+      }
+
+      favoritos.forEach(producto => {
+        const item = document.createElement('div');
+        item.classList.add('favorite-item');
+        item.innerHTML = `
+          <img src="/uploads/${producto.imagen}" alt="Imagen del producto" />
+          <div class="favorite-details">
+            <h4>${producto.nombre}</h4>
+            <p>${producto.descripcion}</p>
+            <span class="price">${producto.precio} €</span>
+            <div class="favorite-buttons">
+              <button class="delete-favorite" onclick="eliminarFavorito(${producto.id})">Eliminar</button>
+              <button class="add-to-cart-favorites" onclick="agregarAlCarritoDesdeFavoritos(${producto.id})">Añadir al carrito</button>
+            </div>
+          </div>
+        `;
+        contenedor.appendChild(item);
+      });
+    })
+    .catch(err => {
+      console.error("Error al obtener favoritos:", err);
+    });
+}
+
+
+
+
+
+
+function eliminarFavorito(idProducto) {
+  fetch(`/api/v1/productosFavoritos/${idProducto}`, {
+    method: 'POST'
+  })
+  .then(async response => {
+    const data = await response.json().catch(() => ({}));
+    if (response.ok) {
+      mostrarAviso(data.correcto || "Producto eliminado de favoritos.", 'correcto');
+      cargarFavoritos(); 
+    } else {
+      mostrarAviso(data.error || "Error al eliminar el producto de favoritos.", 'error');
+    }
+  })
+  .catch(error => {
+    mostrarAviso("Error de red: " + error.message, 'error');
+  });
+}
+
+
+
+
+  /*--------------------------------------------Pestañas--------------------------------------------*/
+
+  function mostrarTab(tab) {
+    document.getElementById('venta').classList.add('hidden');
+    document.getElementById('vendidos').classList.add('hidden');
+    document.getElementById(tab).classList.remove('hidden');
+
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    if (tab === 'venta') {
+      document.querySelector('.tab-btn:nth-child(1)').classList.add('active');
+    } else {
+      document.querySelector('.tab-btn:nth-child(2)').classList.add('active');
+    }
+  }
+
+document.addEventListener("DOMContentLoaded", () => {
+  cargarFavoritos(); 
+});
 
 
 

@@ -4,6 +4,7 @@ import com.tienda.tienda.dao.DaoGrupo;
 import com.tienda.tienda.dao.DaoSocio;
 import com.tienda.tienda.dao.DaoToken;
 import com.tienda.tienda.dao.DaoUsuario;
+import com.tienda.tienda.dto.ProductoDTO;
 import com.tienda.tienda.encriptacion.Sha256;
 import com.tienda.tienda.entities.*;
 import com.tienda.tienda.service.TiendaServicio;
@@ -11,16 +12,21 @@ import com.tienda.tienda.service.TiendaServicioImpl;
 import com.tienda.tienda.tools.Tools;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+import jakarta.servlet.http.HttpSession;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.ui.Model;
+
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
-@RestController
+@Controller
 @RequestMapping("/api/registro")
 public class ControllerRegistro {
 
@@ -47,16 +53,22 @@ public class ControllerRegistro {
         this.tiendaServicio = tiendaServicio;
     }
 
+    @GetMapping("/registro")
+    public String mostrarFormulario() {
+        return "registro"; // Esto busca "templates/registro.html"
+    }
     @PostMapping("/registrarsocio")
     @Transactional
     public String registrarSocio(@RequestParam String email,
                                  @RequestParam String nombre,
                                  @RequestParam String direccion,
                                  @RequestParam String password,
-                                 @RequestParam String telefono) {
+                                 @RequestParam String telefono,
+                                 Model model) {
         try {
             if (daoSocio.findByEmail(email).isPresent()) {
-                return "El email ya está registrado como socio.";
+                model.addAttribute("error", "El email ya está registrado como socio.");
+                return "registro";
             }
 
             // Crear socio
@@ -87,11 +99,13 @@ public class ControllerRegistro {
             String cuerpoCorreo = Tools.creaCuerpoCorreo(token);
             Tools.enviarConGMail(email, "Validación de tu cuenta en Swappy", cuerpoCorreo);
 
-            return "Socio registrado correctamente. Revisa tu correo para validar tu cuenta.";
+            model.addAttribute("mensaje", "Socio registrado correctamente. Revisa tu correo para validar tu cuenta.") ;
+            return "registro_resultado";
         } catch (Exception e) {
                 e.printStackTrace();
                 System.err.println("ERROR DE REGISTRO: " + e.getClass().getSimpleName() + ": " + e.getMessage());
-                return "Error al registrar socio: " + e.getMessage();
+                model.addAttribute("error", "Error al registrar socio: " + e.getMessage());
+                return "registrp";
             }
     }
 
@@ -101,7 +115,7 @@ public class ControllerRegistro {
 
     @Transactional
     @RequestMapping(value = "/validar", method = {RequestMethod.GET, RequestMethod.POST})
-    public String validarUsuario(@RequestParam String token) {
+    public String validarUsuario(@RequestParam String token, Model model) {
         System.out.println("Solicitud recibida con el token: " + token);
 
         try {
@@ -110,7 +124,8 @@ public class ControllerRegistro {
             // Buscar el token
             Optional<Token> tokenOpt = daoToken.findByValue(token);
             if (tokenOpt.isEmpty()) {
-                return "Token inválido o expirado.";
+                model.addAttribute("mensaje", "Token inválido o expirado.");
+                return "registro_resultado";
             }
 
             Token tokenEntity = tokenOpt.get();
@@ -120,19 +135,21 @@ public class ControllerRegistro {
             System.out.println("Email asociado al token: " + email);
 
             if (email == null || email.isEmpty()) {
-                return "El email no es válido.";
+                model.addAttribute("mensaje",  "El email no es válido.");
             }
 
             // Bloqueo pesimista para buscar usuario existente
             Optional<Usuario> usuarioExistenteOpt = daoUsuario.findByEmailWithLock(email);
             if (usuarioExistenteOpt.isPresent()) {
-                return "El usuario ya ha sido validado previamente.";
+                model.addAttribute("mensaje", "El usuario ya ha sido validado previamente.");
+                return "registro_resultado";
             }
 
             // Buscar el socio (forzando que esté en sesión)
             Optional<Socio> socioOpt = daoSocio.findByEmail(email);
             if (socioOpt.isEmpty()) {
-                return "No existe un socio asociado a este email.";
+                model.addAttribute("mensaje", "No existe un socio asociado a este email.");
+                return "registro_resultado";
             }
 
             Socio socio = socioOpt.get();
@@ -140,7 +157,8 @@ public class ControllerRegistro {
             // IMPORTANTE: asegurar que Socio esté "attached" a la sesión
             socio = entityManager.find(Socio.class, socio.getId());
             if (socio == null) {
-                return "Error interno: no se pudo asociar el socio.";
+                model.addAttribute("mensaje", "Error interno: no se pudo asociar el socio.");
+                return "registro_resultado";
             }
 
             // Crear el nuevo usuario
@@ -151,34 +169,77 @@ public class ControllerRegistro {
             daoUsuario.save(nuevoUsuario);
             tiendaServicio.insertarGrupo(email);
 
-            return "Usuario validado y creado correctamente.";
+            model.addAttribute("mensaje", "Usuario validado y creado correctamente.");
+            return "login";
 
         } catch (Exception e) {
             e.printStackTrace();
-            return "Error al validar el usuario: " + e.getMessage();
+            model.addAttribute("mensaje", "Error al validar el usuario: " + e.getMessage());
+            return "registro_resultado";
         }
     }
 
+    @GetMapping("/index")
+    public String mostrarIndex(HttpSession session, Model model) {
+        String token = (String) session.getAttribute("token");
+
+        if (token == null) {
+            return "redirect:/login";
+        }
+
+        List<ProductoDTO> productos = tiendaServicio.getAllProductosDTO();
+        model.addAttribute("productos", productos);
+        return "index";
+    }
+
+
+    @GetMapping("/login")
+    public String mostrarFormularioLogin() {
+        return "login"; 
+    }
+
     @PostMapping("/login")
-    public String login(@RequestParam String email, @RequestParam String clave) throws Exception {
+    public String login(@RequestParam String email,
+                        @RequestParam String clave,
+                        HttpSession session,
+                        Model model) throws Exception {
 
         Optional<Usuario> usuarioOpt = daoUsuario.findById(email);
 
         if (usuarioOpt.isEmpty()) {
-
-            return "El usuario no existe";
+            model.addAttribute("error", "El usuario no existe");
+            return "login";
         }
 
-        String claveencriptada=Sha256.getSha256(clave);
+        String claveencriptada = Sha256.getSha256(clave);
 
         if (claveencriptada.equals(usuarioOpt.get().getClave())) {
+            // Buscar token y guardarlo en sesión
+            Optional<Token> tokenOpt = daoToken.findById(email);
+            if (tokenOpt.isPresent()) {
+                session.setAttribute("token", tokenOpt.get().getValue());
+            }
 
-            return "Login exitoso";
-        }else{
-            return "Contraseña incorrecta";
+             List<ProductoDTO> productos = tiendaServicio.getAllProductosDTO();
+            
+            model.addAttribute("productos", productos); 
+            model.addAttribute("mensaje", "Login exitoso");
+            return "redirect:/api/v1/productos"; 
+        } else {
+            model.addAttribute("error", "Contraseña incorrecta");
+            return "login";
         }
-
     }
+
+    @GetMapping("/logout")
+    public String logout(HttpSession session, Model model) {
+        session.invalidate();       
+             List<ProductoDTO> productos = tiendaServicio.getAllProductosDTO();          
+            model.addAttribute("productos", productos); 
+        return "redirect:/api/v1/productos";  
+    }
+
+
 
    
 

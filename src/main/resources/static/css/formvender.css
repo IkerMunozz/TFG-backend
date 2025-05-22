@@ -48,6 +48,7 @@
     cursor: pointer;
   }
   
+  /* Estilos base del nav (desktop) */
   nav {
     display: flex;
     gap: 1.5rem;
@@ -61,7 +62,6 @@
     position: relative;
     padding: 0.5rem 0;
     z-index: 1001;
-  
   }
   
   nav a::after {
@@ -79,7 +79,130 @@
   nav a:hover::after {
     transform: scaleX(1);
   }
+  
+  /* Estilos responsive del nav (movil) */
+  @media screen and (max-width: 768px) {
+    nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background: var(--white);
+      box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+      z-index: 1000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 60px;
+      box-sizing: border-box;
+      border-top: 1px solid #eee;
+    }
 
+    nav span {
+      display: flex;
+      width: 100%;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 0.5rem;
+    }
+
+    nav a {
+      font-size: 0.6rem;
+      padding: 0.15rem;
+      text-align: center;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.1rem;
+      color: #666;
+      width: 20%;
+      min-width: 0;
+      transition: all 0.2s ease;
+      height: 100%;
+      justify-content: center;
+    }
+
+    nav a::after {
+      display: none;
+    }
+
+    nav a:hover {
+      color: var(--primary-color);
+    }
+
+    nav a.active {
+      color: var(--primary-color);
+    }
+
+    nav a i {
+      font-size: 1.1rem;
+      margin: 0;
+      padding: 0;
+      line-height: 1;
+    }
+
+    /* Ajustar el contenido principal para el nav inferior */
+    .vender-section {
+      padding-bottom: 60px;
+    }
+
+    .footer {
+      margin-bottom: 48px;
+    }
+  }
+
+  @media screen and (max-width: 390px) {
+    nav {
+      height: 44px;
+    }
+
+    nav span {
+      padding: 0 0.4rem;
+    }
+
+    nav a {
+      font-size: 0.5rem;
+    }
+
+    nav a i {
+      font-size: 1rem;
+    }
+
+    .vender-section {
+      padding-bottom: 55px;
+    }
+
+    .footer {
+      margin-bottom: 44px;
+    }
+  }
+
+  @media screen and (max-width: 304px) {
+    nav {
+      height: 40px;
+    }
+
+    nav span {
+      padding: 0 0.3rem;
+    }
+
+    nav a {
+      font-size: 0.45rem;
+    }
+
+    nav a i {
+      font-size: 0.9rem;
+    }
+
+    .vender-section {
+      padding-bottom: 50px;
+    }
+
+    .footer {
+      margin-bottom: 40px;
+    }
+  }
 
   .search-button {
     padding: 0.75rem 2rem;
@@ -95,6 +218,52 @@
   .search-button:hover {
     background: #00c4b0;
     transform: translateY(-1px);
+  }
+
+  @media screen and (max-width: 768px) {
+    .search-button {
+      padding: 0.4rem 0.8rem;
+      font-size: 0.55rem;
+      border-radius: 15px;
+      height: auto;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .search-button a {
+      color: var(--text-color);
+      text-decoration: none;
+      font-size: 0.55rem;
+      line-height: 1;
+    }
+
+    .search-button:hover {
+      transform: none;
+    }
+  }
+
+  @media screen and (max-width: 390px) {
+    .search-button {
+      padding: 0.3rem 0.6rem;
+      font-size: 0.5rem;
+    }
+
+    .search-button a {
+      font-size: 0.5rem;
+    }
+  }
+
+  @media screen and (max-width: 304px) {
+    .search-button {
+      padding: 0.25rem 0.5rem;
+      font-size: 0.45rem;
+    }
+
+    .search-button a {
+      font-size: 0.45rem;
+    }
   }
 
   /*-----------FAVORITOS------------*/
@@ -234,6 +403,7 @@
   position: relative;
   width: 100%;
   flex-wrap: nowrap; 
+  margin: 5px;
 }
 
 
@@ -354,17 +524,6 @@
   background: #9ca3af;
 }
 
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 .favorites-panel {
   animation: slideIn 0.3s ease-out;
 }
@@ -458,6 +617,7 @@
   position: relative;
   width: 100%;
   flex-wrap: nowrap;
+  margin: 5px;
 }
 
 .carrito-item:hover {
@@ -864,6 +1024,107 @@
   .store-links a:hover i {
     color: #2563eb;
   }
+  
+  
+  
+/*-----------RESPONSIVE------------*/
+
+@media screen and (max-width: 768px) {
+  /* Header */
+  header {
+    padding: 0;
+    max-height: none;
+    position: fixed;
+    width: 100vw;
+    background: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    z-index: 1000;
+    left: 0;
+    top: 0;
+  }
+
+  .header-top {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.1rem 0.2rem;
+    width: 100%;
+    height: 32px;
+  }
+
+  header a {
+    display: flex;
+    align-items: center;
+    min-width: 26px;
+  }
+
+  header a img {
+    width: 26px;
+    height: auto;
+    min-width: 26px;
+    min-height: 26px;
+  }
+
+  /* Ajustar el contenido principal para el nav inferior */
+  .vender-section {
+    padding-bottom: 60px;
+  }
+
+  /* Footer ajustado para el nav inferior */
+  .footer {
+    margin-bottom: 50px;
+  }
+}
+
+@media screen and (max-width: 390px) {
+  .header-top {
+    padding: 0.1rem 0.2rem;
+    height: 30px;
+  }
+
+  header a {
+    min-width: 24px;
+  }
+
+  header a img {
+    width: 24px;
+    min-width: 24px;
+    min-height: 24px;
+  }
+
+  .vender-section {
+    padding-bottom: 55px;
+  }
+
+  .footer {
+    margin-bottom: 45px;
+  }
+}
+
+@media screen and (max-width: 304px) {
+  .header-top {
+    height: 28px;
+    padding: 0.1rem;
+  }
+
+  header a {
+    min-width: 22px;
+  }
+
+  header a img {
+    width: 22px;
+    min-width: 22px;
+    min-height: 22px;
+  }
+
+  .vender-section {
+    padding-bottom: 50px;
+  }
+
+  .footer {
+    margin-bottom: 40px;
+  }
+}
   
   
   

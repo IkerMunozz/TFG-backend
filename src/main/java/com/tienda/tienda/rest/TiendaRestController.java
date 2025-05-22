@@ -7,18 +7,23 @@ import com.tienda.tienda.dto.FavoritoDTO;
 import com.tienda.tienda.dto.ProductoDTO;
 import com.tienda.tienda.entities.Compra;
 import com.tienda.tienda.entities.Producto;
+import com.tienda.tienda.entities.Socio;
 import com.tienda.tienda.exception.TiendaException;
 import com.tienda.tienda.service.TiendaServicio;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import ch.qos.logback.core.subst.Token;
+import jakarta.servlet.http.HttpSession;
+import jakarta.transaction.Transactional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -28,11 +33,17 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
-@RestController
+import org.springframework.ui.Model;
+import java.util.Map;
+
+
+@Controller
 @RequestMapping("/api/v1")
 public class TiendaRestController {
 
@@ -52,189 +63,524 @@ public class TiendaRestController {
     }
 
 
-       
+    @GetMapping("/agregarProducto")
+    public String mostrarFormularioVender(HttpSession session, 
+        Model model) {
+
+
+        String token = (String) session.getAttribute("token");
+        if (token == null) {
+            return "login";
+        }
+        if (token != null) {
+        List<CarritoDTO> productosEnCarrito = tiendaServicio.obtenerProductosDelCarrito(token);
+        model.addAttribute("productosEnCarrito", productosEnCarrito);
+        List<FavoritoDTO> productosFavoritos = tiendaServicio.obtenerProductosFavoritos(token);
+        model.addAttribute("productosFavoritos", productosFavoritos);
+        }
+
+        return "formvender"; 
+    }
+
     @PostMapping("/agregarProducto")
-    public ResponseEntity<?> addProducto(
-            @RequestParam("nombre") String nombre,
-            @RequestParam("precio") BigDecimal precio,
-            @RequestParam("descripcion") String descripcion,
-            @RequestParam("imagen") MultipartFile imagenFile,
-            @RequestHeader("Authorization") String authHeader) {
-    
-        try {
-            // Guardar imagen
-            String nombreArchivo = UUID.randomUUID() + "-" + imagenFile.getOriginalFilename();
-            Path rutaGuardar = Paths.get("src/main/resources/static/uploads/", nombreArchivo).toAbsolutePath();
-            Files.copy(imagenFile.getInputStream(), rutaGuardar, StandardCopyOption.REPLACE_EXISTING);
-    
-            // Crear el producto
-            Producto producto = new Producto();
-            producto.setNombre(nombre);
-            producto.setPrecio(precio);
-            producto.setDescripcion(descripcion);
-            producto.setImagen(rutaGuardar.toString());
-            producto.setFechaSubida(Instant.now());
+public String addProducto(
+        @RequestParam("nombre") String nombre,
+        @RequestParam("precio") BigDecimal precio,
+        @RequestParam("descripcion") String descripcion,
+        @RequestParam("imagen") MultipartFile imagenFile,
+        HttpSession session,
+        Model model) {
+
+    try {
+        // Token de sesión
+        String token = (String) session.getAttribute("token");
+        if (token == null) {
+            model.addAttribute("error", "No autenticado.");
+            return "formvender";
+        }
+
+        // Ruta y nombre del archivo
+        String filename = UUID.randomUUID() + "-" + imagenFile.getOriginalFilename();
+        Path uploadPath = Paths.get(System.getProperty("user.dir"), "uploads");
+        if (!Files.exists(uploadPath)) {
+            Files.createDirectories(uploadPath);
+        }
+        Path filePath = uploadPath.resolve(filename);
+        imagenFile.transferTo(filePath.toFile());
+
+        // Producto
+        Producto producto = new Producto();
+        producto.setNombre(nombre);
+        producto.setPrecio(precio);
+        producto.setDescripcion(descripcion);
+        producto.setImagen(filename); // Solo el nombre para la web
+        producto.setFechaSubida(Instant.now());
+
+        // Pasamos la ruta completa solo para el script
+        String rutaCompletaImagen = filePath.toAbsolutePath().toString();
+
+        StringBuilder salidaPython = new StringBuilder();
+        Producto guardado = tiendaServicio.addProducto(producto, token, rutaCompletaImagen, salidaPython);
+
+        if (guardado != null) {
+            model.addAttribute("correcto", "Producto subido correctamente.");
+        } else {
+            model.addAttribute("error", "No se pudo guardar el producto.");
+        }
+
+        
+
+        return "formvender";
+
+    } catch (TiendaException ex) {
+        model.addAttribute("error", "Error: " + ex.getMessage());
+        return "formvender";
+    } catch (Exception ex) {
+        ex.printStackTrace();
+        model.addAttribute("error", "Error inesperado al subir producto.");
+        return "formvender";
+    }
+}
+
 
     
-            // Pasar el token directamente al servicio
-            Producto guardado = tiendaServicio.addProducto(producto, authHeader);
+
     
-            return ResponseEntity.ok(guardado);
     
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error al procesar la solicitud.");
+
+
+@GetMapping("/productos")
+    public String getAllProductosDTO(Model model, HttpSession session) {
+
+        String token = (String) session.getAttribute("token");
+        List<ProductoDTO> productos = tiendaServicio.getAllProductosDTO();
+
+        if (token != null) {
+            Socio socioLogueado = tiendaServicio.obtenerSocioPorToken(token);
+            if (socioLogueado != null) {
+                String emailSocio = socioLogueado.getEmail();
+                productos = productos.stream()
+                    .filter(p -> !p.getIdVendedor().equals(emailSocio))
+                    .collect(Collectors.toList());
+            }
+        }
+
+        model.addAttribute("productos", productos != null ? productos : new ArrayList<>());
+
+        if (token != null) {
+            List<CarritoDTO> productosEnCarrito = tiendaServicio.obtenerProductosDelCarrito(token);
+            model.addAttribute("productosEnCarrito", productosEnCarrito);
+            List<FavoritoDTO> productosFavoritos = tiendaServicio.obtenerProductosFavoritos(token);
+            model.addAttribute("productosFavoritos", productosFavoritos);
+        }
+
+        return "index";
+    }
+
+
+
+
+    @Transactional
+   @PostMapping("/productos/{id}")
+    public String deleteProducto(@PathVariable("id") Integer id, RedirectAttributes redirectAttrs) {
+        try {
+            tiendaServicio.eliminarProductoConReferencias(id);
+            redirectAttrs.addFlashAttribute("correcto", "Producto eliminado con éxito.");
+        } catch (TiendaException e) {
+            redirectAttrs.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/api/v1/perfil";
+    }
+
+
+    @GetMapping("/actualizarproductos/{id}")
+    public String mostrarFormularioActualizarProducto(
+            @PathVariable("id") Integer idproducto,
+            Model model) {
+        try {
+            ProductoDTO productoExistente = tiendaServicio.obtenerProductoPorId(idproducto);
+            model.addAttribute("producto", productoExistente);
+            return "formActualizarProducto";  
+        } catch (TiendaException e) {
+            model.addAttribute("error", "No se encontró el producto: " + e.getMessage());
+            return "redirect:/api/v1/perfil"; 
         }
     }
-    
 
-    
-    
+   @PostMapping("/actualizarproductos/{id}")
+    public String updateProducto(
+            @PathVariable("id") int idproducto,
+            @ModelAttribute Producto nuevosDatos,
+            Model model) {
+        try {
+            tiendaServicio.updateProducto(idproducto, nuevosDatos); 
+            model.addAttribute("mensaje", "Producto actualizado con éxito.");
+            return "redirect:/api/v1/perfil";
+        } catch (TiendaException e) {
+            model.addAttribute("error", "No se pudo actualizar el producto: " + e.getMessage());
+            return "formActualizarProducto"; 
+        }
+    }
 
 
-    @GetMapping("/productos")
-    public ResponseEntity<List<ProductoDTO>> getAllProductosDTO() {
-    List<ProductoDTO> productos = tiendaServicio.getAllProductosDTO();
-    return new ResponseEntity<>(productos, HttpStatus.OK);
+
+@PostMapping("/agregarProductoAlCarrito/{idProducto}")
+@ResponseBody
+public ResponseEntity<?> agregarProductoAlCarrito(@PathVariable Integer idProducto,
+                                                  HttpSession session) {
+    String token = (String) session.getAttribute("token");
+    if (token == null) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                             .body(Map.of("error", "Debes iniciar sesión."));
+    }
+
+    try {
+        if (tiendaServicio.productoYaEnCarrito(token, idProducto)) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                                 .body(Map.of("error", "El producto ya está en tu carrito."));
+        }
+
+        tiendaServicio.agregarProductoAlCarrito(idProducto, token);
+        return ResponseEntity.ok(Map.of("correcto", "Producto agregado al carrito."));
+    } catch (TiendaException e) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                             .body(Map.of("error", e.getMessage()));
+    }
 }
 
 
 
-    @DeleteMapping("/productos/{id}")
-    public ResponseEntity<String> deleteProducto(@PathVariable("id") Integer id) {
-        try {
-            tiendaServicio.deleteProducto(id);  // Llamamos al servicio para eliminar el producto
-            return new ResponseEntity<>("Producto eliminado con éxito", HttpStatus.OK);
-        } catch (TiendaException e) {
-            // En caso de que el producto no exista, devolvemos el error correspondiente
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
-        }
+
+    @GetMapping("/carrito")
+    @ResponseBody
+    public ResponseEntity<?> obtenerCarrito(HttpSession session) {
+        String token = (String) session.getAttribute("token");
+        if (token == null) return ResponseEntity.status(401).body("No autenticado");
+
+        List<CarritoDTO> productos = tiendaServicio.obtenerProductosDelCarrito(token);
+        return ResponseEntity.ok(productos);
     }
 
-    @PutMapping("/productos/{id}")
-    public ResponseEntity<Producto> updateProducto(@PathVariable("id") int idproducto, @RequestBody Producto nuevosDatos) {
-        try {
-            Producto productoActualizado = tiendaServicio.updateProducto(idproducto, nuevosDatos);
-            return new ResponseEntity<>(productoActualizado, HttpStatus.OK);
-        } catch (TiendaException e) {
-            // En caso de que el producto no exista, devolvemos el error correspondiente
-            return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
+
+
+@PostMapping("/crearCompra")
+public String crearCompra(HttpSession session, Model model) {
+    try {
+        String token = (String) session.getAttribute("token");
+
+        if (token == null) {
+            throw new TiendaException("No hay token en la sesión", HttpStatus.UNAUTHORIZED);
         }
+
+        Compra compra = tiendaServicio.crearCompra(token);
+        
+        model.addAttribute("compra", compra);
+        model.addAttribute("correcto", "Compra creada con éxito.");
+        return "redirect:/api/v1/productos";
+    } catch (Exception e) {
+        e.printStackTrace(); 
+        model.addAttribute("error", "Error inesperado al crear la compra");
+        return "index";
     }
+}
 
-    @PostMapping("/agregarProductoAlCarrito/{idProducto}")
-    public ResponseEntity<String> agregarProductoAlCarrito(@PathVariable("idProducto") Integer idProducto, @RequestHeader("Authorization") String authHeader) {
-        try {
-            tiendaServicio.agregarProductoAlCarrito(idProducto, authHeader);  // Llamamos al servicio para agregar el producto al carrito
-            return new ResponseEntity<>("Producto agregado al carrito con éxito", HttpStatus.OK);
-        } catch (TiendaException e) {
-            // En caso de que el producto no exista, devolvemos el error correspondiente
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
-        }
-    }
 
-    @GetMapping("/productosCarrito")
-    public ResponseEntity<List<CarritoDTO>> obtenerProductosDelCarrito(
-            @RequestHeader("Authorization") String authHeader) {
-
-        try {
-            List<CarritoDTO> productosEnCarrito = tiendaServicio.obtenerProductosDelCarrito(authHeader);
-
-            // Retornar los productos del carrito con código HTTP 200 OK
-            return new ResponseEntity<>(productosEnCarrito, HttpStatus.OK);
-        } catch (TiendaException e) {
-            // Si ocurre un error, retornar el mensaje de la excepción con código HTTP correspondiente
-            return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
-        }
-    }
-
-    @PostMapping("/crearCompra")
-    public Compra crearCompra(@RequestHeader("Authorization") String tokenHeader) {
-        try {
-            // Log que indica que se está creando una compra
-            logger.info("Iniciando la creación de la compra para el token: {}", tokenHeader);
-    
-            // Delegamos la creación de la compra al servicio
-            Compra compra = tiendaServicio.crearCompra(tokenHeader);
-    
-            // Log para confirmar la creación de la compra
-            logger.info("Compra creada exitosamente: {}", compra);
-    
-            return compra;
-        } catch (TiendaException e) {
-            // Capturamos cualquier excepción personalizada para manejarla adecuadamente
-            logger.error("Error en la creación de la compra: {}", e.getMessage(), e);
-            // Lanzamos la excepción nuevamente para que el controlador la maneje
-            throw new TiendaException("Error al crear la compra. Detalles: " + e.getMessage(), e.getStatus());
-        } catch (Exception e) {
-            // Manejo de errores generales
-            logger.error("Error inesperado al crear la compra: {}", e.getMessage(), e);
-            // Lanzamos la excepción con más detalle para que el cliente reciba información
-            throw new TiendaException("Error inesperado al crear la compra. Detalles: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
     
 
-    // Método para convertir un StackTrace en un String
-    private String getStackTraceAsString(Exception e) {
-        StringBuilder sb = new StringBuilder();
-        for (StackTraceElement element : e.getStackTrace()) {
-            sb.append(element.toString()).append("\n");
-        }
-        return sb.toString();
+    // // Método para convertir un StackTrace en un String
+    // private String getStackTraceAsString(Exception e) {
+    //     StringBuilder sb = new StringBuilder();
+    //     for (StackTraceElement element : e.getStackTrace()) {
+    //         sb.append(element.toString()).append("\n");
+    //     }
+    //     return sb.toString();
+    // }
+
+@PostMapping("/eliminarProductoDelCarrito/{idProducto}")
+@ResponseBody
+public ResponseEntity<?> eliminarProductoDelCarrito(@PathVariable("idProducto") Integer idProducto,
+                                                   HttpSession session) {
+    String token = (String) session.getAttribute("token");
+    if (token == null) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                             .body(Map.of("error", "Debes iniciar sesión para eliminar productos del carrito."));
     }
 
-    @DeleteMapping("/productosCarrito/{idproducto}")
-    public void deleteProductoCarrito(@PathVariable int idproducto, @RequestHeader("Authorization") String token) {
-        tiendaServicio.deleteProductoCarrito(idproducto, token);
+    try {
+        tiendaServicio.deleteProductoCarrito(idProducto, token);
+
+        // Opcional: puedes devolver el carrito actualizado si quieres refrescarlo en el cliente
+        List<CarritoDTO> productosEnCarrito = tiendaServicio.obtenerProductosDelCarrito(token);
+
+        return ResponseEntity.ok(Map.of("correcto", "Producto eliminado del carrito."));
+
+
+    } catch (TiendaException e) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                             .body(Map.of("error", e.getMessage()));
+    }
+}
+
+
+    
+    @GetMapping("/perfil")
+    public String mostrarPerfil(Model model, HttpSession session) {
+        String token = (String) session.getAttribute("token");
+        if (token != null) {
+            model.addAttribute("productosEnCarrito", tiendaServicio.obtenerProductosDelCarrito(token));
+            model.addAttribute("productosFavoritos", tiendaServicio.obtenerProductosFavoritos(token));
+        }
+
+        List<ProductoDTO> productosEnVenta = tiendaServicio.obtenerProductosPorEstadoYEmail(token, false);
+        if(productosEnVenta==null){
+            model.addAttribute("error", "No se encontraron productos en venta.");
+        }else{
+             model.addAttribute("productos", productosEnVenta);
+        }
+        List<ProductoDTO> productosVendidos = tiendaServicio.obtenerProductosPorEstadoYEmail(token, true);
+
+        if(productosVendidos==null){
+            model.addAttribute("error", "No se encontraron productos vendidos.");
+        }else{
+             model.addAttribute("productosVendidos", productosVendidos);
+        }
+
+        Socio socio = tiendaServicio.obtenerSocioPorToken(token); 
+        model.addAttribute("socio", socio);
+        model.addAttribute("publicados", tiendaServicio.contarArticulosPublicados(token));
+        model.addAttribute("vendidos", tiendaServicio.contarArticulosVendidos(token));
+        model.addAttribute("enVenta", tiendaServicio.contarArticulosEnVenta(token));
+        model.addAttribute("comprados", tiendaServicio.contarArticulosComprados(token));
+
+        return "perfil"; 
+    }
+    
+
+    @GetMapping("/agregarSaldo/{idSocio}")
+    public String mostrarFormularioAgregarSaldo(@PathVariable int idSocio, Model model) {
+        Socio socio = tiendaServicio.obtenerSocioPorId(idSocio);
+        
+        if (socio == null) {
+            model.addAttribute("error", "Socio no encontrado");
+            return "perfil";  
+        }
+        
+        model.addAttribute("socio", socio);
+        return "formAgregarSaldo";  
     }
 
     @PostMapping("/agregarSaldo/{idSocio}")
-    public void agregarSaldo(@PathVariable int idSocio, @RequestBody BigDecimal saldo) {
-        tiendaServicio.agregarSaldo(idSocio, saldo);
-    }
+    public String agregarSaldo(@PathVariable int idSocio, @RequestParam BigDecimal saldo, Model model) {
+        try {
+            tiendaServicio.agregarSaldo(idSocio, saldo);
+            model.addAttribute("correcto", "Saldo actualizado correctamente");
+        } catch (Exception e) {
+            model.addAttribute("error", "Error al actualizar saldo");
+        }
+            return "redirect:/api/v1/perfil";     
+        }
+
 
     @GetMapping("/en-venta")
-    public List<ProductoDTO> obtenerProductosEnVenta(@RequestHeader("Authorization") String tokenHeader) {
-        return tiendaServicio.obtenerProductosPorEstadoYEmail(tokenHeader, false);
+    public String obtenerProductosEnVenta(HttpSession session, Model model) {
+        String token = (String) session.getAttribute("token"); 
+
+        if (token == null) {
+            return "redirect:/login"; 
+        }else{
+            model.addAttribute("productosEnCarrito", tiendaServicio.obtenerProductosDelCarrito(token));
+            model.addAttribute("productosFavoritos", tiendaServicio.obtenerProductosFavoritos(token));
+        }
+
+        List<ProductoDTO> productosEnVenta = tiendaServicio.obtenerProductosPorEstadoYEmail(token, false);
+        if(productosEnVenta==null){
+            model.addAttribute("error", "No se encontraron productos en venta.");
+        }else{
+             model.addAttribute("productos", productosEnVenta);
+        }
+
+
+
+        return "perfil"; 
     }
 
+
     @GetMapping("/vendidos")
-    public List<ProductoDTO> obtenerProductosVendidos(@RequestHeader("Authorization") String tokenHeader) {
-        return tiendaServicio.obtenerProductosPorEstadoYEmail(tokenHeader, true);
+    public String obtenerProductosVendidos(HttpSession session, Model model) {
+        String token = (String) session.getAttribute("token"); 
+
+        if (token == null) {
+            return "redirect:/login"; 
+        }else{
+            model.addAttribute("productosEnCarrito", tiendaServicio.obtenerProductosDelCarrito(token));
+            model.addAttribute("productosFavoritos", tiendaServicio.obtenerProductosFavoritos(token));
+        }
+
+        List<ProductoDTO> productosVendidos = tiendaServicio.obtenerProductosPorEstadoYEmail(token, true);
+
+        if(productosVendidos==null){
+            model.addAttribute("error", "No se encontraron productos vendidos.");
+        }else{
+             model.addAttribute("productosVendidos", productosVendidos);
+        }
+
+
+
+        return "perfil"; 
     }
 
     @GetMapping("/buscarproductos")
-    public List<ProductoDTO> buscarProductos(@RequestParam String terminoBusqueda) {
-        return tiendaServicio.buscarProductos(terminoBusqueda);
+    @ResponseBody
+    public List<ProductoDTO> buscarProductos(@RequestParam String terminoBusqueda, HttpSession session) {
+        List<ProductoDTO> productos = tiendaServicio.buscarProductos(terminoBusqueda);
+
+        String token = (String) session.getAttribute("token");
+        if (token != null) {
+            // Si quieres, puedes hacer algo con carrito o favoritos
+            List<CarritoDTO> productosEnCarrito = tiendaServicio.obtenerProductosDelCarrito(token);
+            List<FavoritoDTO> productosFavoritos = tiendaServicio.obtenerProductosFavoritos(token);
+            // pero no necesitas agregarlos al model porque no se usa para vista
+        }
+
+        return productos;  // solo devuelves la lista de productos como JSON
     }
 
-    @PostMapping("/agregarProductoAFavoritos/{idProducto}")
-    public ResponseEntity<String> agregarProductoAFavoritos(
+
+
+
+@PostMapping("/agregarProductoAFavoritos/{idProducto}")
+@ResponseBody
+    public ResponseEntity<?> agregarProductoAFavoritos(
             @PathVariable("idProducto") Integer idProducto,
-            @RequestHeader("Authorization") String authHeader) {
+            HttpSession session) {
+
+        String token = (String) session.getAttribute("token");
+        if (token == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                                .body(Map.of("error", "Debes iniciar sesión para agregar a favoritos."));
+        }
+
         try {
-            tiendaServicio.agregarProductoAFavoritos(idProducto, authHeader);
-            return new ResponseEntity<>("Producto agregado a favoritos con éxito", HttpStatus.OK);
+            if (tiendaServicio.productoYaEnFavoritos(token, idProducto)) {
+                return ResponseEntity.status(HttpStatus.CONFLICT)
+                                    .body(Map.of("error", "El producto ya está en favoritos."));
+            } else {
+                tiendaServicio.agregarProductoAFavoritos(idProducto, token);
+                return ResponseEntity.ok(Map.of("correcto", "Producto agregado a favoritos."));
+            }
         } catch (TiendaException e) {
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                                .body(Map.of("error", e.getMessage()));
         }
     }
 
+    
     @GetMapping("/productosFavoritos")
-    public ResponseEntity<List<FavoritoDTO>> obtenerProductosFavoritos(
-            @RequestHeader("Authorization") String authHeader) {
+    @ResponseBody
+    public ResponseEntity<?> obtenerProductosFavoritos(HttpSession session) {
+        String token = (String) session.getAttribute("token");
+        if (token == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                                .body(Map.of("error", "Debes iniciar sesión para ver favoritos."));
+        }
+
         try {
-            List<FavoritoDTO> productosFavoritos = tiendaServicio.obtenerProductosFavoritos(authHeader);
-            return new ResponseEntity<>(productosFavoritos, HttpStatus.OK);
+            List<FavoritoDTO> productosFavoritos = tiendaServicio.obtenerProductosFavoritos(token);
+            return ResponseEntity.ok(productosFavoritos);  // JSON con los favoritos
         } catch (TiendaException e) {
-            return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                                .body(Map.of("error", e.getMessage()));
         }
     }
 
-    @DeleteMapping("/productosFavoritos/{idproducto}")
-    public void deleteProductoFavorito(@PathVariable int idproducto, @RequestHeader("Authorization") String token) {
-        tiendaServicio.deleteProductoFavorito(idproducto, token);
+
+@PostMapping("/productosFavoritos/{idproducto}")
+@ResponseBody
+public ResponseEntity<?> deleteProductoFavorito(@PathVariable int idproducto, HttpSession session) {
+    String token = (String) session.getAttribute("token");
+
+    if (token == null) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                             .body(Map.of("error", "Debes iniciar sesión para eliminar productos de favoritos."));
     }
+
+    try {
+        tiendaServicio.deleteProductoFavorito(idproducto, token);
+        return ResponseEntity.ok(Map.of("correcto", "Producto eliminado de favoritos."));
+    } catch (TiendaException e) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                             .body(Map.of("error", e.getMessage()));
+    }
+}
+
+
+@PostMapping("/agregarProductoAlCarritoEnFavoritos/{idProducto}")
+@ResponseBody
+public ResponseEntity<?> agregarProductoAlCarritoEnFavoritos(@PathVariable("idProducto") Integer idProducto,
+                                                             HttpSession session) {
+    String token = (String) session.getAttribute("token");
+
+    if (token == null) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                             .body(Map.of("error", "Debes iniciar sesión para agregar productos al carrito."));
+    }
+
+    try {
+        if (tiendaServicio.productoYaEnCarrito(token, idProducto)) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                                 .body(Map.of("error", "El producto ya está en tu carrito."));
+        } else {
+            tiendaServicio.agregarProductoAlCarrito(idProducto, token);
+            tiendaServicio.deleteProductoFavorito(idProducto, token);
+
+            return ResponseEntity.ok(Map.of("correcto", "Producto agregado al carrito y eliminado de favoritos."));
+        }
+    } catch (TiendaException e) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                             .body(Map.of("error", e.getMessage()));
+    }
+}
+
+
+
+    @GetMapping("/puntosEnvio")
+    public String mostrarPuntosDeEnvio(Model model, HttpSession session) {
+        String token = (String) session.getAttribute("token");
+        if (token != null) {
+            model.addAttribute("productosEnCarrito", tiendaServicio.obtenerProductosDelCarrito(token));
+            model.addAttribute("productosFavoritos", tiendaServicio.obtenerProductosFavoritos(token));
+        }
+
+        return "puntosEnvio"; 
+    }
+
+//     @GetMapping("/perfil/detalles")
+// public String verPerfil(HttpSession session, Model model) {
+//     String token = (String) session.getAttribute("token");
+
+//     if (token == null) {
+//         return "redirect:/login";
+//     }
+
+//     try {
+//         Socio socio = tiendaServicio.obtenerSocioPorToken(token); 
+//         model.addAttribute("socio", socio);
+//         model.addAttribute("publicados", tiendaServicio.contarArticulosPublicados(token));
+//         model.addAttribute("vendidos", tiendaServicio.contarArticulosVendidos(token));
+//         model.addAttribute("enVenta", tiendaServicio.contarArticulosEnVenta(token));
+//         model.addAttribute("comprados", tiendaServicio.contarArticulosComprados(token));
+
+//     } catch (Exception e) {
+//         model.addAttribute("error", "Error al cargar perfil: " + e.getMessage());
+//         return "error"; // o una vista personalizada
+//     }
+
+//     return "perfil";
+// }
+
+
+
+
 
 }
 

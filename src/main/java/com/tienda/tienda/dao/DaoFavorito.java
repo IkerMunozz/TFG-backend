@@ -14,5 +14,7 @@ public interface DaoFavorito extends JpaRepository<Favorito, FavoritoId> {
     List<Favorito> findByIdusuario(Socio socio);
     void deleteByIdusuario(Socio socio);
     Optional <Favorito> findByIdusuarioAndIdproducto(Socio usuario, Producto producto);
+    void deleteById_Idproducto(Integer idProducto);
+
     
 }

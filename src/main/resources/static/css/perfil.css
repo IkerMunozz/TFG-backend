@@ -675,6 +675,29 @@
     color: var(--text-color);
 }
 
+.btn-agregar-saldo {
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius);
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 0.5rem;
+    box-shadow: 0 4px 12px rgba(0, 196, 176, 0.3);
+    font-size: 0.9rem;
+    display: inline-block;
+    transition: all 0.3s ease;
+
+}
+
+.btn-agregar-saldo:hover {
+    background: var(--primary-dark);
+    transform: translateY(-1px);
+
+}
+
+
 .search-button {
     padding: 0.75rem 2rem;
     background: #00E0CA;
@@ -690,6 +713,226 @@
     background: #00c4b0;
     transform: translateY(-1px);
   }
+
+.tabs {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    margin: 2rem 0;
+    padding: 0 1rem;
+}
+
+.tab-btn {
+    padding: 0.75rem 1.5rem;
+    background-color: var(--bg-color);
+    border: none;
+    border-radius: 30px;
+    color: var(--text-color);
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.tab-btn:hover {
+    background-color: var(--primary-color);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 196, 176, 0.2);
+}
+
+.tab-btn.active {
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+    color: white;
+    box-shadow: 0 4px 12px rgba(0, 196, 176, 0.3);
+}
+
+.text {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-color);
+    text-align: center;
+    margin: 0 0 2rem 0;
+    position: relative;
+    padding: 0.5rem 0;
+    display: block;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    width: 100%;
+}
+
+.text::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -5px;
+    height: 3px;
+    background: linear-gradient(90deg, var(--primary-color), var(--primary-dark));
+    border-radius: 3px;
+    width: 60%;
+    margin: 0 auto;
+}
+
+.perfil-articulos {
+    padding: 2rem;
+    background-color: var(--white);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    margin: 0px auto 50px;
+    max-width: 1200px;
+    display: flex;
+    flex-direction: column;
+}
+
+.articulo-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.5rem;
+    margin-top: 1rem;
+}
+
+.articulo-card {
+    background: var(--white);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    width: 100%;
+    max-width: 250px;
+    margin: 0 auto;
+}
+
+.articulo-card:hover {
+    transform: translateY(-5px);
+
+}
+
+.articulo-card img {
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+    display: block;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.articulo-info {
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+}
+
+.articulo-info h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--text-color);
+}
+
+.articulo-info p {
+    color: #6b7280;
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+    line-height: 1.4;
+}
+
+.price {
+    color: var(--primary-color);
+    font-weight: 700;
+    font-size: 1.1rem;
+    display: block;
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.vendido {
+    opacity: 0.7;
+    position: relative;
+}
+
+.vendido::after {
+    content: "Vendido";
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white;
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    border-radius: 20px;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+    z-index: 1;
+}
+
+.articulo-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    flex-wrap: wrap;
+}
+
+.edit-btn, .delete-btn {
+    padding: 0.5rem 0.75rem;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    white-space: nowrap;
+    min-width: fit-content;
+}
+
+.edit-btn {
+    background-color: var(--primary-color);
+    color: white;
+    text-decoration: none;
+}
+
+.edit-btn:hover {
+    background-color: var(--primary-dark);
+}
+
+.delete-btn {
+    background-color: #ef4444;
+    color: white;
+}
+
+.delete-btn:hover {
+    background-color: #dc2626;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .tabs {
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    
+    .tab-btn {
+        width: 100%;
+        text-align: center;
+    }
+    
+    .articulo-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+    }
+    
+    .articulo-card {
+        width: 100%;
+    }
+    
+    .perfil-articulos {
+        padding: 1rem;
+    }
+}
 
 .footer {
     background: #fff;
@@ -777,3 +1020,323 @@
     color: #2563eb;
   }
   
+
+/*-----------RESPONSIVE------------*/
+
+@media screen and (max-width: 768px) {
+  header {
+    padding: 0;
+    max-height: none;
+    position: fixed;
+    width: 100vw;
+    background: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    z-index: 1000;
+    left: 0;
+    top: 0;
+  }
+
+  .header-top {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.1rem 0.2rem;
+    width: 100vw;
+    height: 32px;
+  }
+
+  header a {
+    display: flex;
+    align-items: center;
+    min-width: 26px;
+  }
+
+  header a img {
+    width: 26px;
+    height: auto;
+    min-width: 26px;
+    min-height: 26px;
+  }
+
+  nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: var(--white);
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 60px;
+    box-sizing: border-box;
+    border-top: 1px solid #eee;
+  }
+
+  nav span {
+    display: flex;
+    width: 100%;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 0.5rem;
+  }
+
+  nav a {
+    font-size: 0.6rem;
+    padding: 0.15rem;
+    text-align: center;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.1rem;
+    color: #666;
+    width: 20%;
+    min-width: 0;
+    transition: all 0.2s ease;
+    height: 100%;
+    justify-content: center;
+  }
+
+  nav a::after {
+    display: none;
+  }
+
+  nav a:hover {
+    color: var(--primary-color);
+  }
+
+  nav a.active {
+    color: var(--primary-color);
+  }
+
+  nav a i {
+    font-size: 1.1rem;
+    margin: 0;
+    padding: 0;
+    line-height: 1;
+  }
+
+  .perfil-container {
+    margin-top: 32px;
+    margin-bottom: 60px;
+    width: 95%;
+    padding: 15px;
+  }
+
+  .perfil-articulos {
+    margin-top: 32px;
+    margin-bottom: 60px;
+    padding: 15px;
+  }
+
+  .perfil-header h1 {
+    font-size: 24px;
+  }
+
+  .perfil-header p {
+    font-size: 14px;
+  }
+
+  .foto-perfil {
+    width: 100px;
+    height: 100px;
+  }
+
+  .perfil-estadisticas {
+    gap: 15px;
+  }
+
+  .estadistica {
+    padding: 15px;
+  }
+
+  .estadistica h2 {
+    font-size: 14px;
+  }
+
+  .estadistica p {
+    font-size: 18px;
+  }
+
+  .btn-agregar-saldo {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.8rem;
+  }
+
+  .footer {
+    margin-bottom: 50px;
+    padding: 1rem;
+  }
+
+  .footer-top {
+    gap: 1rem;
+  }
+
+  .footer-logo img {
+    width: 120px;
+  }
+
+  .footer-links {
+    gap: 1rem;
+  }
+
+  .search-button {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.55rem;
+    border-radius: 15px;
+    height: auto;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .search-button a {
+    color: var(--text-color);
+    text-decoration: none;
+    font-size: 0.55rem;
+    line-height: 1;
+  }
+
+  .search-button:hover {
+    transform: none;
+  }
+}
+
+@media screen and (max-width: 390px) {
+  .header-top {
+    padding: 0.1rem 0.2rem;
+    height: 30px;
+  }
+
+  header a {
+    min-width: 24px;
+  }
+
+  header a img {
+    width: 24px;
+    min-width: 24px;
+    min-height: 24px;
+  }
+
+  nav {
+    height: 44px;
+  }
+
+  nav span {
+    padding: 0 0.4rem;
+  }
+
+  nav a {
+    font-size: 0.5rem;
+  }
+
+  nav a i {
+    font-size: 1rem;
+  }
+
+  .perfil-container {
+    margin-top: 30px;
+    margin-bottom: 55px;
+    padding: 12px;
+  }
+
+  .search-button {
+    padding: 0.3rem 0.6rem;
+    font-size: 0.5rem;
+  }
+
+  .search-button a {
+    font-size: 0.5rem;
+  }
+}
+
+@media screen and (max-width: 304px) {
+  .header-top {
+    height: 28px;
+    padding: 0.1rem;
+  }
+
+  header a {
+    min-width: 22px;
+  }
+
+  header a img {
+    width: 22px;
+    min-width: 22px;
+    min-height: 22px;
+  }
+
+  nav {
+    height: 40px;
+  }
+
+  nav span {
+    padding: 0 0.3rem;
+  }
+
+  nav a {
+    font-size: 0.45rem;
+  }
+
+  nav a i {
+    font-size: 0.9rem;
+  }
+
+  .perfil-container {
+    margin-top: 28px;
+    margin-bottom: 50px;
+    padding: 10px;
+  }
+
+  .search-button {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.45rem;
+  }
+
+  .search-button a {
+    font-size: 0.45rem;
+  }
+}
+
+@media screen and (max-width: 768px) {
+    .articulo-actions {
+        gap: 0.4rem;
+        margin-top: 0.75rem;
+    }
+
+    .edit-btn, .delete-btn {
+        padding: 0.4rem 0.6rem;
+        font-size: 0.75rem;
+        gap: 0.3rem;
+    }
+}
+
+@media screen and (max-width: 390px) {
+    .articulo-actions {
+        gap: 0.3rem;
+        margin-top: 0.5rem;
+    }
+
+    .edit-btn, .delete-btn {
+        padding: 0.3rem 0.5rem;
+        font-size: 0.7rem;
+        gap: 0.25rem;
+    }
+}
+
+@media screen and (max-width: 304px) {
+    .articulo-actions {
+        gap: 0.25rem;
+        margin-top: 0.4rem;
+    }
+
+    .edit-btn, .delete-btn {
+        padding: 0.25rem 0.4rem;
+        font-size: 0.65rem;
+        gap: 0.2rem;
+    }
+}
+

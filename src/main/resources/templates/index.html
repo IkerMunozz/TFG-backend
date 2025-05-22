@@ -5,185 +5,153 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Swappy</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/index.css">
-  <link rel="icon" type="image/png" href="img/logotitle.jpg">
+  <link rel="stylesheet" href="/css/index.css">
+  <link rel="stylesheet" href="/css/formularios.css">
+  <link rel="icon" type="image/png" href="/img/logotitle.jpg">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
 
 </head>
 <body>
   <header>
     <div class="header-top">
-      <a href="index.html">
-        <img src="img/logo.png" alt="logo">
+      <a href="/api/v1/productos">
+        <img src="/img/logo.png" alt="logo">
       </a>      
       <nav>
-        <a href="#" id="toggle-favorites">Favoritos</a>
-        <a href="#" id="toggle-carrito">Carrito</a>
-        <a href="perfil.html">Mi Perfil</a>
-        <a href="puntosEnvio.html">Puntos de envío</a>
-        <a href="registro.html">Registrate o Inicia sesión</a>
-        <button class="search-button"><a href="formvender.html">Vender ya</a></button>
+        <span th:if="${logueado}">
+          <a href="#" id="toggle-favorites">Favoritos</a>
+          <a href="#" id="toggle-carrito">Carrito</a>
+          <a href="/api/v1/puntosEnvio">Puntos de envío</a>
+          <a href="/api/v1/perfil">Mi Perfil</a>
+          <a href="/api/registro/logout">Cerrar sesión</a>
+        </span>
+        <span th:unless="${logueado}">
+          <a href="/api/registro/registro">Regístrate o Inicia sesión</a>
+        </span>
+
+        <button class="search-button">
+          <a href="/api/v1/agregarProducto">Vender ya</a>
+        </button>
       </nav>
     </div>
   </header>
-  <div id="favorites-panel" class="favorites-panel hidden">
-    <div class="favorites-header">
-      <h3>Mis favoritos</h3>
-      <button id="close-favorites" class="close-button">×</button>
-    </div>
-    <div class="favorites-list" id="favorites-list">
-      
-      <!-- Producto 1 -->
-      <div class="favorite-item">
-        <img src="img/libro.webp" alt="Producto">
+
+<div th:if="${logueado}" id="favorites-panel" class="favorites-panel hidden">
+  <div class="favorites-header">
+    <h3>Mis Favoritos</h3>
+    <button id="close-favorites" class="close-button">×</button>
+  </div>
+  <div th:if="${productosFavoritos == null}">
+    <p>No tienes productos favoritos.</p>
+  </div>
+  <div class="favorites-list" id="favorites-list">
+    <div th:if="${productosFavoritos != null}">
+      <div th:each="producto : ${productosFavoritos}" class="favorite-item">
+        <img th:src="@{'/uploads/' + ${producto.imagen}}" alt="Imagen del producto" />
         <div class="favorite-details">
-          <h4>Zapatillas Nike</h4>
-          <p>Como nuevas, talla 42</p>
-          <span class="price">45 €</span>
-          <div class="favorite-buttons">
-            <button class="delete-favorite">Eliminar</button>
-            <button class="add-to-cart-favorites">Añadir al carrito</button>
-          </div>
+          <h4 th:text="${producto.nombre}"></h4>
+          <p th:text="${producto.descripcion}"></p>
+          <span class="price" th:text="${producto.precio + ' €'}"></span>
+          <button 
+              type="button" 
+              class="delete-favorite" 
+              th:attr="onclick=|eliminarFavorito(${producto.id})|">
+            Eliminar
+          </button>
+
+          <button 
+              type="button"
+              class="add-to-cart-favorites"
+              th:attr="onclick=|agregarAlCarritoDesdeFavoritos(${producto.id})|">
+            Añadir al carrito
+          </button>
         </div>
       </div>
-  
-      <!-- Producto 2 -->
-      <div class="favorite-item">
-        <img src="img/libro.webp" alt="Producto">
-        <div class="favorite-details">
-          <h4>Zapatillas Adidas</h4>
-          <p>Usadas, talla 40</p>
-          <span class="price">30 €</span>
-          <div class="favorite-buttons">
-            <button class="delete-favorite">Eliminar</button>
-            <button class="add-to-cart-favorites">Añadir al carrito</button>
-          </div>
-        </div>
-      </div>
-  
     </div>
   </div>
-  <div id="carrito-panel" class="carrito-panel hidden">
-    <div class="carrito-header">
-      <h3>Mi Carrito</h3>
-      <button id="close-carrito" class="close-button">×</button>
-    </div>
-    <div class="carrito-list" id="carrito-list">
-      
-      <!-- Producto 1 -->
-      <div class="carrito-item">
-        <img src="img/libro.webp" alt="Producto">
+</div>
+
+<div th:if="${logueado}" id="carrito-panel" class="carrito-panel hidden">
+  <div class="carrito-header">
+    <h3>Mi Carrito</h3>
+    <button id="close-carrito" class="close-button">×</button>
+  </div>
+  <div class="carrito-list" id="carrito-list">
+    <div th:if="${productosEnCarrito != null}">
+      <div th:each="producto : ${productosEnCarrito}" class="carrito-item">
+        <img th:src="@{'/uploads/' + ${producto.imagen}}" alt="Imagen del producto" />
         <div class="carrito-details">
-          <h4>Zapatillas Nike</h4>
-          <p>Como nuevas, talla 42</p>
-          <span class="price">45 €</span>
+          <h4 th:text="${producto.nombre}"></h4>
+          <p th:text="${producto.descripcion}"></p>
+          <span class="price" th:text="${producto.precio + ' €'}"></span>
           <div class="carrito-buttons">
-            <button class="delete-favorite">Eliminar</button>
+            <button type="button"
+              class="delete-favorite"
+              th:attr="onclick=|eliminarDelCarrito(${producto.id})|">
+              Eliminar
+            </button>
           </div>
         </div>
       </div>
-  
-      <!-- Producto 2 -->
-      <div class="carrito-item">
-        <img src="img/libro.webp" alt="Producto">
-        <div class="carrito-details">
-          <h4>Zapatillas Adidas</h4>
-          <p>Usadas, talla 40</p>
-          <span class="price">30 €</span>
-          <div class="carrito-buttons">
-            <button class="delete-favorite">Eliminar</button>
-          </div>
-        </div>
-      </div>
-      <button class="realizar-compra">Realizar compra</button>
     </div>
   </div>
+  <form th:action="@{/api/v1/crearCompra}" method="post">
+    <button type="submit" class="realizar-compra" id="btncrearCompra">Realizar compra</button>
+  </form>
+</div>
+
   
   <div class="hero">
     <div class="card-hero">
       <h2>¿Quieres hacer limpieza de productos que ya no uses?</h2>
-      <button><a href="formvender.html">Vender ya</a></button>
+      <a href="/api/v1/agregarProducto" class="btn-vender">Vender ya</a>
     </div>
   </div>
   <div class="text">
     <h1>Busca los mejores productos de segunda mano</h1>
   </div>
-  <div id="search-placeholder"></div>
-  <div id="searchBar" class="search-container">
-    <input type="text" class="search-input" placeholder="Buscar productos...">
-    <button class="search-button">Buscar</button>
-  </div>
+<div class="search-container">
+  <input type="text" id="terminoBusqueda" class="search-input" placeholder="Buscar productos...">
+  <button type="button" class="search-button" id="searchButton">Buscar</button>
+</div>
 
-  <div class="container" id="productos">
-    <h2>Productos destacados</h2>
-    <div class="products">
-      <div class="card">
-        <img src="img/camiseta.webp" alt="Producto">
-        <h3>Zapatillas Nike</h3>
-        <p>Como nuevas, talla 42</p>
-        <span class="price">45 €</span>
-        <div class="botones">
-          <button class="add-to-cart">Comprar</button>  
-          <button class="me-gusta"><i class="fas fa-heart"></i></button>
-        </div>
-      </div>
-      <div class="card">
-        <img src="img/libro.webp" alt="Producto">
-        <h3>iPhone 13</h3>
-        <p>128 GB, impecable estado</p>
-        <span class="price">650 €</span>
-        <div class="botones">
-          <button class="add-to-cart">Comprar</button>  
-          <button class="me-gusta"><i class="fas fa-heart"></i></button>
-        </div>
-      </div>
-      <div class="card">
-        <img src="https://via.placeholder.com/300x200" alt="Producto">
-        <h3>Chaqueta de cuero</h3>
-        <p>Negra, talla M</p>
-        <span class="price">75 €</span>
-        <div class="botones">
-          <button class="add-to-cart">Comprar</button>  
-          <button class="me-gusta"><i class="fas fa-heart"></i></button>
-        </div>
-      </div>
-      <div class="card">
-        <img src="https://via.placeholder.com/300x200" alt="Producto">
-        <h3>Zapatillas Nike</h3>
-        <p>Como nuevas, talla 42</p>
-        <span class="price">45 €</span>
-        <div class="botones">
-          <button class="add-to-cart">Comprar</button>  
-          <button class="me-gusta"><i class="fas fa-heart"></i></button>
-        </div>
-      </div>
-      <div class="card">
-        <img src="https://via.placeholder.com/300x200" alt="Producto">
-        <h3>iPhone 13</h3>
-        <p>128 GB, impecable estado</p>
-        <span class="price">650 €</span>
-        <div class="botones">
-          <button class="add-to-cart">Comprar</button>  
-          <button class="me-gusta"><i class="fas fa-heart"></i></button>
-        </div>
-      </div>
-      <div class="card">
-        <img src="https://via.placeholder.com/300x200" alt="Producto">
-        <h3>Chaqueta de cuero</h3>
-        <p>Negra, talla M</p>
-        <span class="price">75 €</span>
-        <div class="botones">
-          <button class="add-to-cart">Comprar</button>  
-          <button class="me-gusta"><i class="fas fa-heart"></i></button>
-        </div>
+<div id="resultados-busqueda"></div>
+
+<div id="mensaje-aviso" class="mensaje-aviso" style="display:none;"></div>
+
+<div class="container">
+  <h2>Productos destacados</h2>
+  <div class="products" id="products-container">
+    <div th:each="producto : ${productos}" 
+         class="card" 
+         th:attr="data-id=${producto.id}">
+      <img th:src="@{'/uploads/' + ${producto.imagen}}" alt="Imagen del producto" />
+      <h3 th:text="${producto.nombre}"></h3>
+      <p th:text="${producto.descripcion}"></p>
+      <span class="price" th:text="${#strings.concat(producto.precio, ' €')}"></span>
+      <div class="botones">
+        <button th:if="${session.token != null}"
+                type="button"
+                class="add-to-cart-product"
+                th:attr="onclick=|agregarAlCarrito(${producto.id})|">
+          Añadir al carrito
+        </button>
+        <button th:if="${session.token != null}" 
+                type="button" 
+                class="me-gusta" 
+                th:attr="onclick=|agregarAFavoritos(${producto.id})|">
+          <i class="fas fa-heart"></i>
+        </button>
       </div>
     </div>
   </div>
+</div>
+  
 
 <footer class="footer">
     <div class="footer-top">
       <div class="footer-logo">
-        <img src="img/logo.png" alt="Logo" />
+        <img src="/img/logo.png" alt="Logo" />
         <p>© Swappy. Todos los derechos reservados</p>
       </div>
   
@@ -240,9 +208,17 @@
 
 
 
-<footer/>
-  
-<script src="js/script.js"></script>
-<script src="js/carrito.js"></script>
+</footer>
+<script th:inline="javascript">
+  /*<![CDATA[*/
+  const sessionToken = /*[[${logueado != null}]]*/ false;
+  /*]]>*/
+</script>
+
+
+<script src="/js/buscador.js"></script>
+
+<script src="/js/script.js"></script>
+<script src="/js/carrito.js"></script>
 </body>
 </html>
