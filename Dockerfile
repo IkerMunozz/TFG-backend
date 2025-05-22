@@ -3,7 +3,7 @@ FROM maven:3.9.6-eclipse-temurin-21 AS builder
 
 WORKDIR /app
 
-COPY pom.xml .
+COPY pom.xml ./
 RUN mvn dependency:go-offline
 
 COPY src ./src
@@ -22,14 +22,12 @@ WORKDIR /app
 # Copiar el JAR generado
 COPY --from=builder /app/target/*.jar app.jar
 
-# Copiar los scripts Python
-COPY src/main/resources/python /app/python
+# Copiar los scripts Python a la ruta /app/scripts
+COPY src/main/resources/scripts /app/scripts
 
-# Exponer si usas puertos (opcional, ej: 8080)
-# EXPOSE 8080
-
-# Ejecutar la aplicación
+# Establecer punto de entrada
 ENTRYPOINT ["java", "-jar", "app.jar"]
+
 
 
 

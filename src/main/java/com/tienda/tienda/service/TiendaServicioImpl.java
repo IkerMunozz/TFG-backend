@@ -129,7 +129,7 @@ public Producto addProducto(Producto producto, String tokenHeader, String rutaIm
 
     producto.setIdvendedor(vendedor);
 
-    String scriptPath = "/app/python/detectar_objeto.py"; 
+    String scriptPath = "./scripts/detectar_objeto.py"; 
 
 
     try {
