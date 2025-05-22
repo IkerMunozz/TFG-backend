@@ -14,7 +14,11 @@ FROM python:3.9-slim
 
 # Instalar Java y dependencias necesarias
 RUN apt-get update && \
-    apt-get install -y openjdk-21-jdk && \
+    apt-get install -y wget gnupg && \
+    wget -qO - https://packages.adoptium.net/artifactory/api/gpg/key/public | apt-key add - && \
+    echo "deb https://packages.adoptium.net/artifactory/deb bullseye main" | tee /etc/apt/sources.list.d/adoptium.list && \
+    apt-get update && \
+    apt-get install -y temurin-21-jdk && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
