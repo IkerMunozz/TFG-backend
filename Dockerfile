@@ -14,7 +14,7 @@ FROM eclipse-temurin:21-jdk
 
 # Instalar Python y dependencias necesarias
 RUN apt-get update && \
-    apt-get install -y python3 python3-pip python3-dev build-essential && \
+    apt-get install -y python3 python3-pip python3-dev build-essential wget && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -26,11 +26,11 @@ RUN mkdir -p /app/uploads && \
 # Copiar scripts Python
 COPY src/main/resources/python /app/python
 
-# Instalar dependencias de Python y descargar el modelo YOLO
-RUN echo "Instalando ultralytics..." && \
-    pip3 install --no-cache-dir ultralytics && \
-    echo "Descargando modelo YOLO..." && \
-    python3 -c "from ultralytics import YOLO; print('Descargando modelo...'); YOLO('yolov8n.pt', task='detect'); print('Modelo descargado correctamente')"
+# Instalar dependencias de Python
+RUN pip3 install --no-cache-dir ultralytics
+
+# Descargar el modelo YOLO directamente
+RUN wget https://github.com/ultralytics/assets/releases/download/v0.0.0/yolov8n.pt -O /app/python/yolov8n.pt
 
 # Copiar JAR construido
 COPY --from=builder /app/target/*.jar app.jar

@@ -16,8 +16,16 @@ def detect_objects(image_path):
         if torch.cuda.is_available():
             logger.info(f"Dispositivo CUDA: {torch.cuda.get_device_name(0)}")
         
+        # Usar la ruta absoluta al modelo
+        model_path = os.path.join(os.path.dirname(__file__), 'yolov8n.pt')
+        logger.info(f"Ruta del modelo: {model_path}")
+        
+        if not os.path.exists(model_path):
+            logger.error(f"Modelo no encontrado en: {model_path}")
+            return False
+            
         logger.info("Cargando modelo YOLO...")
-        model = YOLO('yolov8n.pt', task='detect')
+        model = YOLO(model_path, task='detect')
         logger.info("Modelo cargado correctamente")
         
         logger.info("Realizando detección...")
