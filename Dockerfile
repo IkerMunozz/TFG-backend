@@ -26,8 +26,11 @@ RUN mkdir -p /app/uploads && \
 # Copiar scripts Python
 COPY src/main/resources/python /app/python
 
-# Instalar dependencias de Python
-RUN pip3 install --no-cache-dir ultralytics
+# Instalar dependencias de Python paso a paso
+RUN pip3 install --upgrade pip && \
+    pip3 install --no-cache-dir numpy && \
+    pip3 install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cpu && \
+    pip3 install --no-cache-dir ultralytics
 
 # Descargar el modelo YOLO directamente
 RUN wget https://github.com/ultralytics/assets/releases/download/v0.0.0/yolov8n.pt -O /app/python/yolov8n.pt
