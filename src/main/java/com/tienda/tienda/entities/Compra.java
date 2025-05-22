@@ -25,7 +25,6 @@ public class Compra {
     @Column(name = "total", nullable = false, precision = 10, scale = 2)
     private BigDecimal total;
 
-    @ColumnDefault("CURRENT_TIMESTAMP")
     @Column(name = "fecha_compra")
     private Instant fechaCompra;
 
