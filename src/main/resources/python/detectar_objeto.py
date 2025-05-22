@@ -17,10 +17,7 @@ def detect_objects(image_path):
             logger.info(f"Dispositivo CUDA: {torch.cuda.get_device_name(0)}")
         
         # Usar la ruta absoluta al modelo
-        model_path = os.path.join(os.path.dirname(__file__), 'yolov8n.onnx')
-        if not os.path.exists(model_path):
-            model_path = os.path.join(os.path.dirname(__file__), 'yolov8n.pt')
-        
+        model_path = os.path.join(os.path.dirname(__file__), 'models', 'yolov8n.pt')
         logger.info(f"Ruta del modelo: {model_path}")
         
         if not os.path.exists(model_path):
