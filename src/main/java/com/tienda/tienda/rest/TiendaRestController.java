@@ -92,31 +92,31 @@ public String addProducto(
         Model model) {
 
     try {
-        // Token de sesión
         String token = (String) session.getAttribute("token");
         if (token == null) {
             model.addAttribute("error", "No autenticado.");
             return "formvender";
         }
 
-        // Ruta y nombre del archivo
-        String filename = UUID.randomUUID() + "-" + imagenFile.getOriginalFilename();
-        Path uploadPath = Paths.get(System.getProperty("user.dir"), "uploads");
+        // Cambiar la ruta a la carpeta fija en el contenedor
+        Path uploadPath = Paths.get("/app/uploads");
         if (!Files.exists(uploadPath)) {
             Files.createDirectories(uploadPath);
         }
+
+        String filename = UUID.randomUUID() + "-" + imagenFile.getOriginalFilename();
         Path filePath = uploadPath.resolve(filename);
+
         imagenFile.transferTo(filePath.toFile());
 
-        // Producto
         Producto producto = new Producto();
         producto.setNombre(nombre);
         producto.setPrecio(precio);
         producto.setDescripcion(descripcion);
-        producto.setImagen(filename); // Solo el nombre para la web
+        producto.setImagen(filename); // solo nombre para la web
         producto.setFechaSubida(Instant.now());
 
-        // Pasamos la ruta completa solo para el script
+        // Ruta absoluta válida dentro del contenedor
         String rutaCompletaImagen = filePath.toAbsolutePath().toString();
 
         StringBuilder salidaPython = new StringBuilder();
@@ -127,8 +127,6 @@ public String addProducto(
         } else {
             model.addAttribute("error", "No se pudo guardar el producto.");
         }
-
-        
 
         return "formvender";
 
@@ -141,6 +139,7 @@ public String addProducto(
         return "formvender";
     }
 }
+
 
 
     

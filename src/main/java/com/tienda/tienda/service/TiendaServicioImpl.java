@@ -130,7 +130,7 @@ public Producto addProducto(Producto producto, String tokenHeader, String rutaIm
     producto.setIdvendedor(vendedor);
 
     String scriptPath = "./scripts/detectar_objeto.py"; 
-
+    
 
     try {
         ProcessBuilder pb = new ProcessBuilder(
