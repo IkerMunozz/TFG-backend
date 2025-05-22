@@ -129,14 +129,26 @@ public Producto addProducto(Producto producto, String tokenHeader, String rutaIm
 
     producto.setIdvendedor(vendedor);
 
-    String scriptPath = "./scripts/detectar_objeto.py"; 
-    
+    // Ruta del script en el contenedor Docker
+    String scriptPath = "/app/scripts/detectar_objeto.py";
 
     try {
+        // Verificar que el archivo existe
+        File scriptFile = new File(scriptPath);
+        if (!scriptFile.exists()) {
+            throw new TiendaException("No se encontró el script de detección en: " + scriptPath, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+
+        // Verificar que la imagen existe
+        File imagenFile = new File(rutaImagenAbsoluta);
+        if (!imagenFile.exists()) {
+            throw new TiendaException("No se encontró la imagen en: " + rutaImagenAbsoluta, HttpStatus.BAD_REQUEST);
+        }
+
         ProcessBuilder pb = new ProcessBuilder(
                 "python3",
                 scriptPath,
-                rutaImagenAbsoluta // ← usamos la ruta real del disco
+                rutaImagenAbsoluta 
         );
         pb.redirectErrorStream(true);
         Process process = pb.start();
@@ -150,13 +162,13 @@ public Producto addProducto(Producto producto, String tokenHeader, String rutaIm
         int exitCode = process.waitFor();
 
         if (exitCode == 1) {
-            throw new TiendaException("No se ha detectado ningún producto en la imagen.", HttpStatus.BAD_REQUEST);
+            throw new TiendaException("No se ha detectado ningún producto en la imagen. Ruta de la imagen: " + rutaImagenAbsoluta, HttpStatus.BAD_REQUEST);
         } else if (exitCode != 0) {
-            throw new TiendaException("Error al procesar la imagen.", HttpStatus.INTERNAL_SERVER_ERROR);
+            throw new TiendaException("Error al procesar la imagen: " + salidaPython.toString(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
     } catch (IOException | InterruptedException e) {
-        throw new TiendaException("Error ejecutando el script de detección", HttpStatus.INTERNAL_SERVER_ERROR);
+        throw new TiendaException("Error ejecutando el script de detección: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     return daoProducto.save(producto);

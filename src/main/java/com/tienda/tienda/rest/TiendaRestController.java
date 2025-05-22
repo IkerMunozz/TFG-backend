@@ -41,6 +41,7 @@ import java.util.stream.Collectors;
 
 import org.springframework.ui.Model;
 import java.util.Map;
+import java.io.File;
 
 
 @Controller
@@ -83,62 +84,70 @@ public class TiendaRestController {
     }
 
     @PostMapping("/agregarProducto")
-public String addProducto(
-        @RequestParam("nombre") String nombre,
-        @RequestParam("precio") BigDecimal precio,
-        @RequestParam("descripcion") String descripcion,
-        @RequestParam("imagen") MultipartFile imagenFile,
-        HttpSession session,
-        Model model) {
+    public String addProducto(
+            @RequestParam("nombre") String nombre,
+            @RequestParam("precio") BigDecimal precio,
+            @RequestParam("descripcion") String descripcion,
+            @RequestParam("imagen") MultipartFile imagenFile,
+            HttpSession session,
+            Model model) {
 
-    try {
-        String token = (String) session.getAttribute("token");
-        if (token == null) {
-            model.addAttribute("error", "No autenticado.");
+        try {
+            String token = (String) session.getAttribute("token");
+            if (token == null) {
+                model.addAttribute("error", "No autenticado.");
+                return "formvender";
+            }
+
+            // Crear la carpeta de uploads si no existe
+            Path uploadPath = Paths.get("/app/uploads");
+            if (!Files.exists(uploadPath)) {
+                Files.createDirectories(uploadPath);
+            }
+
+            // Generar nombre único para el archivo
+            String filename = UUID.randomUUID() + "-" + imagenFile.getOriginalFilename();
+            Path filePath = uploadPath.resolve(filename);
+
+            // Guardar el archivo
+            Files.copy(imagenFile.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
+            // Crear el producto
+            Producto producto = new Producto();
+            producto.setNombre(nombre);
+            producto.setPrecio(precio);
+            producto.setDescripcion(descripcion);
+            producto.setImagen(filename);
+            producto.setFechaSubida(Instant.now());
+
+            // Obtener la ruta absoluta del archivo
+            String rutaCompletaImagen = filePath.toAbsolutePath().toString();
+            
+            // Verificar que el archivo existe y es accesible
+            File imagenFileCheck = new File(rutaCompletaImagen);
+            if (!imagenFileCheck.exists() || !imagenFileCheck.canRead()) {
+                throw new TiendaException("No se pudo acceder a la imagen en: " + rutaCompletaImagen, HttpStatus.INTERNAL_SERVER_ERROR);
+            }
+
+            StringBuilder salidaPython = new StringBuilder();
+            Producto guardado = tiendaServicio.addProducto(producto, token, rutaCompletaImagen, salidaPython);
+
+            if (guardado != null) {
+                model.addAttribute("correcto", "Producto subido correctamente.");
+            } else {
+                model.addAttribute("error", "No se pudo guardar el producto.");
+            }
+
+            return "formvender";
+
+        } catch (TiendaException ex) {
+            model.addAttribute("error", "Error: " + ex.getMessage());
+            return "formvender";
+        } catch (IOException ex) {
+            model.addAttribute("error", "Error al procesar la imagen: " + ex.getMessage());
             return "formvender";
         }
-
-        // Cambiar la ruta a la carpeta fija en el contenedor
-        Path uploadPath = Paths.get("/app/uploads");
-        if (!Files.exists(uploadPath)) {
-            Files.createDirectories(uploadPath);
-        }
-
-        String filename = UUID.randomUUID() + "-" + imagenFile.getOriginalFilename();
-        Path filePath = uploadPath.resolve(filename);
-
-        imagenFile.transferTo(filePath.toFile());
-
-        Producto producto = new Producto();
-        producto.setNombre(nombre);
-        producto.setPrecio(precio);
-        producto.setDescripcion(descripcion);
-        producto.setImagen(filename); // solo nombre para la web
-        producto.setFechaSubida(Instant.now());
-
-        // Ruta absoluta válida dentro del contenedor
-        String rutaCompletaImagen = filePath.toAbsolutePath().toString();
-
-        StringBuilder salidaPython = new StringBuilder();
-        Producto guardado = tiendaServicio.addProducto(producto, token, rutaCompletaImagen, salidaPython);
-
-        if (guardado != null) {
-            model.addAttribute("correcto", "Producto subido correctamente.");
-        } else {
-            model.addAttribute("error", "No se pudo guardar el producto.");
-        }
-
-        return "formvender";
-
-    } catch (TiendaException ex) {
-        model.addAttribute("error", "Error: " + ex.getMessage());
-        return "formvender";
-    } catch (Exception ex) {
-        ex.printStackTrace();
-        model.addAttribute("error", "Error inesperado al subir producto.");
-        return "formvender";
     }
-}
 
 
 

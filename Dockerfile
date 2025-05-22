@@ -19,8 +19,9 @@ RUN apt-get update && \
 
 WORKDIR /app
 
-# Crear carpeta para uploads
-RUN mkdir -p /app/uploads
+# Crear carpeta para uploads y dar permisos
+RUN mkdir -p /app/uploads && \
+    chmod 777 /app/uploads
 
 # Copiar scripts Python
 COPY src/main/resources/scripts /app/scripts
