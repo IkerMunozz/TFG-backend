@@ -61,7 +61,7 @@ public class Tools {
 
 
     public static String creaCuerpoCorreo(String token) {
-        String ref = "http://localhost:8080/api/registro/validar?token=" + token;
+        String ref = "http://tfg-backend-production.up.railway.app/api/registro/validar?token=" + token;
         StringBuilder st = new StringBuilder();
         st.append("<!DOCTYPE html>");
         st.append("<html lang='es'>");
