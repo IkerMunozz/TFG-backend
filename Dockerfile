@@ -10,11 +10,11 @@ COPY src ./src
 RUN mvn clean package -DskipTests
 
 # Etapa 2: Imagen final con Java 21 y Python 3
-FROM eclipse-temurin:21-jdk
+FROM python:3.9-slim
 
-# Instalar Python y dependencias necesarias
+# Instalar Java y dependencias necesarias
 RUN apt-get update && \
-    apt-get install -y python3 python3-pip python3-dev build-essential wget && \
+    apt-get install -y openjdk-21-jdk wget && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -26,14 +26,17 @@ RUN mkdir -p /app/uploads && \
 # Copiar scripts Python
 COPY src/main/resources/python /app/python
 
-# Instalar dependencias de Python paso a paso con versiones específicas
+# Instalar dependencias de Python paso a paso
 RUN pip3 install --upgrade pip && \
-    pip3 install --no-cache-dir numpy==1.24.3 && \
-    pip3 install --no-cache-dir torch==2.0.1 torchvision==0.15.2 --index-url https://download.pytorch.org/whl/cpu && \
-    pip3 install --no-cache-dir ultralytics==8.0.0
+    pip3 install --no-cache-dir numpy==1.24.3
 
-# Descargar el modelo YOLO directamente
-RUN wget https://github.com/ultralytics/assets/releases/download/v0.0.0/yolov8n.pt -O /app/python/yolov8n.pt
+RUN pip3 install --no-cache-dir torch==2.0.1+cpu torchvision==0.15.2+cpu -f https://download.pytorch.org/whl/torch_stable.html
+
+RUN pip3 install --no-cache-dir ultralytics==8.0.0
+
+# Descargar el modelo YOLO optimizado
+RUN wget https://github.com/ultralytics/assets/releases/download/v0.0.0/yolov8n.pt -O /app/python/yolov8n.pt && \
+    python3 -c "from ultralytics import YOLO; model = YOLO('/app/python/yolov8n.pt'); model.export(format='onnx', simplify=True, opset=12)"
 
 # Copiar JAR construido
 COPY --from=builder /app/target/*.jar app.jar
