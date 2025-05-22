@@ -2,16 +2,18 @@ from ultralytics import YOLO
 import sys
 import os
 
-# Cargar el modelo YOLO pre-entrenado
-model = YOLO('yolov8n.pt')
-
 def detect_objects(image_path):
     try:
         print(f"Intentando detectar objetos en: {image_path}")
-        results = model(image_path, verbose=False)
+        # Cargar el modelo solo cuando sea necesario
+        model = YOLO('yolov8n.pt', task='detect')
+        # Realizar la detección con configuración optimizada
+        results = model(image_path, verbose=False, conf=0.25, iou=0.45)
         predictions = results[0].boxes
         num_objects = len(predictions)
         print(f"Número de objetos detectados: {num_objects}")
+        # Liberar memoria
+        del model
         return num_objects > 0
     except Exception as e:
         print(f"Error durante la detección: {str(e)}")

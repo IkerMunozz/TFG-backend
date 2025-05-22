@@ -14,7 +14,7 @@ FROM eclipse-temurin:21-jdk
 
 # Instalar Python y dependencias necesarias
 RUN apt-get update && \
-    apt-get install -y python3 python3-pip wget && \
+    apt-get install -y python3 python3-pip && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -27,11 +27,14 @@ RUN mkdir -p /app/uploads && \
 COPY src/main/resources/python /app/python
 
 # Instalar dependencias de Python y descargar el modelo YOLO
-RUN pip3 install ultralytics && \
-    python3 -c "from ultralytics import YOLO; YOLO('yolov8n.pt')"
+RUN pip3 install --no-cache-dir ultralytics && \
+    python3 -c "from ultralytics import YOLO; YOLO('yolov8n.pt', task='detect')"
 
 # Copiar JAR construido
 COPY --from=builder /app/target/*.jar app.jar
+
+# Configurar variables de entorno para Java
+ENV JAVA_OPTS="-Xmx512m -Xms256m"
 
 ENTRYPOINT ["java", "-jar", "app.jar"]
 
