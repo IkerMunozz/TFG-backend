@@ -217,12 +217,12 @@ public Producto addProducto(Producto producto, String tokenHeader, String rutaIm
             outputThread.start();
 
             // Esperar a que el proceso termine con un timeout
-            boolean completed = process.waitFor(30, TimeUnit.SECONDS);
+            boolean completed = process.waitFor(120, TimeUnit.SECONDS);
             if (!completed) {
                 process.destroyForcibly();
                 System.out.println("ERROR: El script Python excedió el tiempo límite");
                 System.out.println("Salida hasta el momento: " + output.toString());
-                throw new TiendaException("El proceso de detección excedió el tiempo límite", HttpStatus.REQUEST_TIMEOUT);
+                throw new TiendaException("El proceso de detección excedió el tiempo límite de 2 minutos", HttpStatus.REQUEST_TIMEOUT);
             }
 
             // Esperar a que el hilo de salida termine

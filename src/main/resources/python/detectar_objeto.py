@@ -7,6 +7,7 @@ import gc
 from PIL import Image
 import traceback
 from datetime import datetime
+import time
 
 # Configurar logging a archivo
 log_dir = '/app/logs'
@@ -77,9 +78,23 @@ def detect_objects(image_path):
         
         # Cargar el modelo con configuración optimizada
         logger.info("Cargando modelo YOLO...")
+        start_time = time.time()
+        
+        # Configurar PyTorch para usar CPU y optimizar memoria
+        torch.set_num_threads(4)  # Limitar threads de CPU
+        torch.set_num_interop_threads(4)
+        
+        # Cargar modelo con configuración optimizada
         model = YOLO(model_path)
-        model.to('cpu')  # Forzar uso de CPU
-        logger.info("Modelo cargado correctamente")
+        model.to('cpu')
+        
+        # Configurar el modelo para inferencia
+        model.conf = 0.25  # Umbral de confianza
+        model.iou = 0.45   # Umbral de IOU
+        model.max_det = 100  # Máximo número de detecciones
+        
+        load_time = time.time() - start_time
+        logger.info(f"Modelo cargado en {load_time:.2f} segundos")
         
         # Verificar la imagen
         logger.info("Verificando imagen...")
@@ -91,12 +106,20 @@ def detect_objects(image_path):
         logger.info("Procesando imagen...")
         img = Image.open(image_path)
         logger.info(f"Tamaño original de la imagen: {img.size}")
-        img.thumbnail((640, 640))  # Reducir tamaño manteniendo proporción
+        
+        # Reducir tamaño manteniendo proporción
+        max_size = 640
+        ratio = min(max_size/img.size[0], max_size/img.size[1])
+        new_size = tuple(int(dim * ratio) for dim in img.size)
+        img = img.resize(new_size, Image.Resampling.LANCZOS)
         logger.info(f"Tamaño reducido de la imagen: {img.size}")
         
         # Realizar la detección
         logger.info("Iniciando detección...")
-        results = model(img, conf=0.25)  # Reducir umbral de confianza
+        start_time = time.time()
+        results = model(img, verbose=False)
+        detection_time = time.time() - start_time
+        logger.info(f"Detección completada en {detection_time:.2f} segundos")
         
         # Verificar si se detectaron objetos
         if len(results[0].boxes) > 0:
