@@ -31,6 +31,9 @@ RUN mkdir -p /app/uploads && \
 COPY src/main/resources/python /app/python
 COPY src/main/resources/models /app/python/models
 
+# Dar permisos de ejecución al script Python
+RUN chmod +x /app/python/detectar_objeto.py
+
 # Instalar dependencias de Python paso a paso
 RUN pip3 install --upgrade pip && \
     pip3 install --no-cache-dir numpy==1.24.3

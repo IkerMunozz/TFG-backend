@@ -27,6 +27,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.net.URISyntaxException;
 
 @Service
 public class TiendaServicioImpl implements TiendaServicio {
@@ -141,7 +142,7 @@ public Producto addProducto(Producto producto, String tokenHeader, String rutaIm
         producto.setIdvendedor(vendedor);
         System.out.println("Vendedor asignado correctamente");
 
-        //Ruta del script en el contenedor Docker
+        // Ruta del script en el contenedor
         String scriptPath = "/app/python/detectar_objeto.py";
         System.out.println("Ruta del script Python: " + scriptPath);
 
