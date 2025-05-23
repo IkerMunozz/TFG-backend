@@ -215,6 +215,7 @@ public Producto addProducto(Producto producto, String tokenHeader, String rutaIm
                         System.out.println("[PYTHON] " + line);
                         output.append(line).append("\n");
                         salidaPython.append(line).append("\n");
+                        System.out.flush(); // Forzar escritura inmediata
                     }
                 } catch (IOException e) {
                     System.out.println("Error leyendo la salida del script: " + e.getMessage());
@@ -235,6 +236,7 @@ public Producto addProducto(Producto producto, String tokenHeader, String rutaIm
                 int exitCode = process.exitValue();
                 System.out.println("Código de salida del script Python: " + exitCode);
                 System.out.println("Salida completa del script: " + output.toString());
+                System.out.flush(); // Forzar escritura inmediata
 
                 if (exitCode == 1) {
                     throw new TiendaException("No se ha detectado ningún producto en la imagen. Ruta: " + rutaImagenAbsoluta + "\nSalida del script: " + output.toString(), HttpStatus.BAD_REQUEST);
