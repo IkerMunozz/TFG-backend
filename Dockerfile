@@ -14,7 +14,7 @@ FROM python:3.9-slim
 
 # Instalar Java 21 y herramientas necesarias
 RUN apt-get update && \
-    apt-get install -y wget gnupg curl && \
+    apt-get install -y wget gnupg curl libgl1 && \
     wget -qO - https://packages.adoptium.net/artifactory/api/gpg/key/public | apt-key add - && \
     echo "deb https://packages.adoptium.net/artifactory/deb bullseye main" | tee /etc/apt/sources.list.d/adoptium.list && \
     apt-get update && \
