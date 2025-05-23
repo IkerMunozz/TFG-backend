@@ -84,7 +84,8 @@ def detect_objects(image_path):
         # Cargar el modelo YOLO
         print("Cargando modelo YOLO...")
         start_time = time.time()
-        model = YOLO('models/yolov8n.pt')
+        model_path = os.path.join(os.path.dirname(__file__), 'models', 'yolov8n.pt')
+        model = YOLO(model_path)
         print(f"Modelo cargado en {time.time() - start_time:.2f} segundos")
         
         # Realizar la detección
