@@ -147,13 +147,17 @@ public Producto addProducto(Producto producto, String tokenHeader, String rutaIm
         System.out.println("Ruta del script Python: " + scriptPath);
 
         try {
-            // Verificar que el archivo existe
+            // Verificar que el script existe y es ejecutable
             File scriptFile = new File(scriptPath);
             if (!scriptFile.exists()) {
                 System.out.println("ERROR: Script no encontrado en: " + scriptPath);
                 throw new TiendaException("No se encontró el script de detección en: " + scriptPath, HttpStatus.INTERNAL_SERVER_ERROR);
             }
-            System.out.println("Script encontrado correctamente");
+            if (!scriptFile.canExecute()) {
+                System.out.println("ERROR: Script no tiene permisos de ejecución: " + scriptPath);
+                throw new TiendaException("El script de detección no tiene permisos de ejecución", HttpStatus.INTERNAL_SERVER_ERROR);
+            }
+            System.out.println("Script encontrado y ejecutable: " + scriptPath);
 
             // Verificar que la imagen existe
             File imagenFile = new File(rutaImagenAbsoluta);
@@ -179,74 +183,94 @@ public Producto addProducto(Producto producto, String tokenHeader, String rutaIm
             System.out.println("Tamaño de la imagen: " + fileSize + " bytes");
 
             System.out.println("Ejecutando script Python...");
-            ProcessBuilder pb = new ProcessBuilder(
-                    "python3",
-                    scriptPath,
-                    rutaImagenAbsoluta 
-            );
-            
-            // Configurar el entorno del proceso
-            Map<String, String> env = pb.environment();
-            env.put("PYTHONUNBUFFERED", "1");
-            env.put("TORCH_CUDA_VERSION", "cpu");
-            env.put("PYTHONIOENCODING", "utf-8");
-            
-            // Redirigir la salida de error al mismo stream
-            pb.redirectErrorStream(true);
-            
-            // Iniciar el proceso
-            Process process = pb.start();
+            try {
+                ProcessBuilder pb = new ProcessBuilder(
+                        "python3",
+                        "-u",  // Forzar salida sin buffer
+                        scriptPath,
+                        rutaImagenAbsoluta 
+                );
+                
+                // Configurar el entorno del proceso
+                Map<String, String> env = pb.environment();
+                env.put("PYTHONUNBUFFERED", "1");
+                env.put("TORCH_CUDA_VERSION", "cpu");
+                env.put("PYTHONIOENCODING", "utf-8");
+                env.put("PYTHONPATH", "/app/python");
+                
+                // Redirigir la salida de error al mismo stream
+                pb.redirectErrorStream(true);
+                
+                System.out.println("Iniciando proceso Python...");
+                Process process = pb.start();
+                System.out.println("Proceso Python iniciado con PID: " + process.pid());
 
-            // Capturar la salida en un StringBuilder
-            StringBuilder output = new StringBuilder();
-            
-            // Capturar la salida en un hilo separado
-            Thread outputThread = new Thread(() -> {
-                try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream(), "UTF-8"))) {
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        System.out.println("[PYTHON] " + line);
-                        output.append(line).append("\n");
-                        salidaPython.append(line).append("\n");
+                // Capturar la salida en un StringBuilder
+                StringBuilder output = new StringBuilder();
+                
+                // Capturar la salida en un hilo separado
+                Thread outputThread = new Thread(() -> {
+                    try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream(), "UTF-8"))) {
+                        String line;
+                        while ((line = reader.readLine()) != null) {
+                            System.out.println("[PYTHON] " + line);
+                            output.append(line).append("\n");
+                            salidaPython.append(line).append("\n");
+                        }
+                    } catch (IOException e) {
+                        System.out.println("Error leyendo la salida del script: " + e.getMessage());
+                        e.printStackTrace();
                     }
-                } catch (IOException e) {
-                    System.out.println("Error leyendo la salida del script: " + e.getMessage());
-                    e.printStackTrace();
+                });
+                outputThread.start();
+                System.out.println("Hilo de captura de salida iniciado");
+
+                // Esperar a que el proceso termine con un timeout
+                System.out.println("Esperando a que el proceso termine (timeout: 120 segundos)...");
+                boolean completed = process.waitFor(120, TimeUnit.SECONDS);
+                if (!completed) {
+                    System.out.println("Proceso no completado en el tiempo límite, forzando terminación...");
+                    process.destroyForcibly();
+                    System.out.println("ERROR: El script Python excedió el tiempo límite");
+                    System.out.println("Salida hasta el momento: " + output.toString());
+                    throw new TiendaException("El proceso de detección excedió el tiempo límite de 2 minutos", HttpStatus.REQUEST_TIMEOUT);
                 }
-            });
-            outputThread.start();
 
-            // Esperar a que el proceso termine con un timeout
-            boolean completed = process.waitFor(120, TimeUnit.SECONDS);
-            if (!completed) {
-                process.destroyForcibly();
-                System.out.println("ERROR: El script Python excedió el tiempo límite");
-                System.out.println("Salida hasta el momento: " + output.toString());
-                throw new TiendaException("El proceso de detección excedió el tiempo límite de 2 minutos", HttpStatus.REQUEST_TIMEOUT);
-            }
+                // Esperar a que el hilo de salida termine
+                System.out.println("Proceso completado, esperando a que termine el hilo de salida...");
+                outputThread.join(5000);
 
-            // Esperar a que el hilo de salida termine
-            outputThread.join(5000);
+                int exitCode = process.exitValue();
+                System.out.println("Código de salida del script Python: " + exitCode);
+                System.out.println("Salida completa del script: " + output.toString());
 
-            int exitCode = process.exitValue();
-            System.out.println("Código de salida del script Python: " + exitCode);
-            System.out.println("Salida completa del script: " + output.toString());
-
-            if (exitCode == 1) {
-                System.out.println("ERROR: No se detectaron objetos en la imagen");
-                throw new TiendaException("No se ha detectado ningún producto en la imagen. Ruta de la imagen: " + rutaImagenAbsoluta + "\nSalida del script: " + output.toString(), HttpStatus.BAD_REQUEST);
-            } else if (exitCode != 0) {
-                System.out.println("ERROR: Fallo en el script Python con código: " + exitCode);
-                throw new TiendaException("Error al procesar la imagen: " + output.toString(), HttpStatus.INTERNAL_SERVER_ERROR);
+                if (exitCode == 1) {
+                    System.out.println("ERROR: No se detectaron objetos en la imagen");
+                    throw new TiendaException("No se ha detectado ningún producto en la imagen. Ruta de la imagen: " + rutaImagenAbsoluta + "\nSalida del script: " + output.toString(), HttpStatus.BAD_REQUEST);
+                } else if (exitCode != 0) {
+                    System.out.println("ERROR: Fallo en el script Python con código: " + exitCode);
+                    throw new TiendaException("Error al procesar la imagen: " + output.toString(), HttpStatus.INTERNAL_SERVER_ERROR);
+                }
+            } catch (IOException e) {
+                System.out.println("Error al ejecutar el script Python: " + e.getMessage());
+                e.printStackTrace();
+                throw new TiendaException("Error al ejecutar el script de detección: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            } catch (InterruptedException e) {
+                System.out.println("Proceso Python interrumpido: " + e.getMessage());
+                e.printStackTrace();
+                throw new TiendaException("El proceso de detección fue interrumpido", HttpStatus.INTERNAL_SERVER_ERROR);
+            } catch (Exception e) {
+                System.out.println("Error inesperado: " + e.getMessage());
+                e.printStackTrace();
+                throw new TiendaException("Error inesperado durante la detección: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
             }
 
             System.out.println("Proceso de detección completado exitosamente");
 
-        } catch (IOException | InterruptedException e) {
-            System.out.println("ERROR: Excepción durante la ejecución del script");
-            System.out.println("Mensaje de error: " + e.getMessage());
+        } catch (Exception e) {
+            System.out.println("ERROR GENERAL: " + e.getMessage());
             e.printStackTrace();
-            throw new TiendaException("Error ejecutando el script de detección: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            throw e;
         }
 
         System.out.println("Guardando producto en la base de datos...");

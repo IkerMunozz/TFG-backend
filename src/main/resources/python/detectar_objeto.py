@@ -9,6 +9,15 @@ import traceback
 from datetime import datetime
 import time
 
+# Forzar salida inmediata
+sys.stdout.reconfigure(line_buffering=True)
+sys.stderr.reconfigure(line_buffering=True)
+
+print("=== Iniciando script de detección de objetos ===")
+print(f"Python version: {sys.version}")
+print(f"Directorio actual: {os.getcwd()}")
+print(f"Argumentos recibidos: {sys.argv}")
+
 # Configurar logging a archivo
 log_dir = '/app/logs'
 try:
@@ -43,7 +52,7 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
         logging.FileHandler(log_file),
-        logging.StreamHandler()
+        logging.StreamHandler(sys.stdout)
     ]
 )
 logger = logging.getLogger(__name__)
@@ -51,33 +60,33 @@ logger = logging.getLogger(__name__)
 def log_system_info():
     """Registra información del sistema"""
     try:
-        logger.info("=== Información del Sistema ===")
-        logger.info(f"Python version: {sys.version}")
-        logger.info(f"PyTorch version: {torch.__version__}")
-        logger.info(f"CUDA disponible: {torch.cuda.is_available()}")
+        print("=== Información del Sistema ===")
+        print(f"Python version: {sys.version}")
+        print(f"PyTorch version: {torch.__version__}")
+        print(f"CUDA disponible: {torch.cuda.is_available()}")
         if torch.cuda.is_available():
-            logger.info(f"CUDA version: {torch.version.cuda}")
-        logger.info(f"Directorio actual: {os.getcwd()}")
-        logger.info(f"Contenido del directorio actual: {os.listdir('.')}")
-        logger.info(f"Contenido del directorio models: {os.listdir('models')}")
-        logger.info(f"Memoria disponible: {torch.cuda.get_device_properties(0).total_memory if torch.cuda.is_available() else 'CPU only'}")
+            print(f"CUDA version: {torch.version.cuda}")
+        print(f"Directorio actual: {os.getcwd()}")
+        print(f"Contenido del directorio actual: {os.listdir('.')}")
+        print(f"Contenido del directorio models: {os.listdir('models')}")
+        print(f"Memoria disponible: {torch.cuda.get_device_properties(0).total_memory if torch.cuda.is_available() else 'CPU only'}")
     except Exception as e:
-        logger.error(f"Error al obtener información del sistema: {str(e)}")
+        print(f"Error al obtener información del sistema: {str(e)}")
 
 def detect_objects(image_path):
     try:
-        logger.info(f"=== Iniciando detección de objetos ===")
-        logger.info(f"Ruta de la imagen: {image_path}")
+        print(f"=== Iniciando detección de objetos ===")
+        print(f"Ruta de la imagen: {image_path}")
         
         # Verificar que el modelo existe
         model_path = 'models/yolov8n.pt'
         if not os.path.exists(model_path):
-            logger.error(f"Modelo no encontrado en: {model_path}")
+            print(f"Modelo no encontrado en: {model_path}")
             return False
-        logger.info(f"Modelo encontrado en: {model_path}")
+        print(f"Modelo encontrado en: {model_path}")
         
         # Cargar el modelo con configuración optimizada
-        logger.info("Cargando modelo YOLO...")
+        print("Cargando modelo YOLO...")
         start_time = time.time()
         
         # Configurar PyTorch para usar CPU y optimizar memoria
@@ -94,94 +103,94 @@ def detect_objects(image_path):
         model.max_det = 100  # Máximo número de detecciones
         
         load_time = time.time() - start_time
-        logger.info(f"Modelo cargado en {load_time:.2f} segundos")
+        print(f"Modelo cargado en {load_time:.2f} segundos")
         
         # Verificar la imagen
-        logger.info("Verificando imagen...")
+        print("Verificando imagen...")
         if not os.path.exists(image_path):
-            logger.error(f"Imagen no encontrada en: {image_path}")
+            print(f"Imagen no encontrada en: {image_path}")
             return False
         
         # Reducir el tamaño de la imagen para ahorrar memoria
-        logger.info("Procesando imagen...")
+        print("Procesando imagen...")
         img = Image.open(image_path)
-        logger.info(f"Tamaño original de la imagen: {img.size}")
+        print(f"Tamaño original de la imagen: {img.size}")
         
         # Reducir tamaño manteniendo proporción
         max_size = 640
         ratio = min(max_size/img.size[0], max_size/img.size[1])
         new_size = tuple(int(dim * ratio) for dim in img.size)
         img = img.resize(new_size, Image.Resampling.LANCZOS)
-        logger.info(f"Tamaño reducido de la imagen: {img.size}")
+        print(f"Tamaño reducido de la imagen: {img.size}")
         
         # Realizar la detección
-        logger.info("Iniciando detección...")
+        print("Iniciando detección...")
         start_time = time.time()
         results = model(img, verbose=False)
         detection_time = time.time() - start_time
-        logger.info(f"Detección completada en {detection_time:.2f} segundos")
+        print(f"Detección completada en {detection_time:.2f} segundos")
         
         # Verificar si se detectaron objetos
         if len(results[0].boxes) > 0:
-            logger.info(f"Se detectaron {len(results[0].boxes)} objetos")
+            print(f"Se detectaron {len(results[0].boxes)} objetos")
             for box in results[0].boxes:
-                logger.info(f"Objeto detectado: {box.cls}, confianza: {box.conf}")
+                print(f"Objeto detectado: {box.cls}, confianza: {box.conf}")
             return True
         else:
-            logger.info("No se detectaron objetos")
+            print("No se detectaron objetos")
             return False
             
     except Exception as e:
-        logger.error(f"Error durante la detección: {str(e)}")
-        logger.error("Traceback completo:")
-        logger.error(traceback.format_exc())
+        print(f"Error durante la detección: {str(e)}")
+        print("Traceback completo:")
+        traceback.print_exc()
         return False
     finally:
         # Limpiar memoria
-        logger.info("Limpiando memoria...")
+        print("Limpiando memoria...")
         if 'model' in locals():
             del model
         if 'results' in locals():
             del results
         gc.collect()
         torch.cuda.empty_cache() if torch.cuda.is_available() else None
-        logger.info("Memoria limpiada")
+        print("Memoria limpiada")
 
 if __name__ == "__main__":
     try:
-        logger.info("=== Iniciando script de detección de objetos ===")
+        print("=== Iniciando script de detección de objetos ===")
         log_system_info()
         
         if len(sys.argv) < 2:
-            logger.error("No se proporcionó la ruta de la imagen.")
+            print("No se proporcionó la ruta de la imagen.")
             sys.exit(2)
 
         image_path = sys.argv[1]
-        logger.info(f"Ruta de la imagen recibida: {image_path}")
+        print(f"Ruta de la imagen recibida: {image_path}")
 
         if not os.path.exists(image_path):
-            logger.error(f"Imagen no encontrada en: {image_path}")
+            print(f"Imagen no encontrada en: {image_path}")
             sys.exit(3)
 
-        logger.info(f"Tamaño de la imagen: {os.path.getsize(image_path)} bytes")
+        print(f"Tamaño de la imagen: {os.path.getsize(image_path)} bytes")
         
         found = detect_objects(image_path)
         if found:
-            logger.info("Detección completada exitosamente")
+            print("Detección completada exitosamente")
             sys.exit(0)
         else:
-            logger.error("No se detectaron objetos en la imagen")
+            print("No se detectaron objetos en la imagen")
             sys.exit(1)
     except Exception as e:
-        logger.error(f"Error general: {str(e)}")
-        logger.error("Traceback completo:")
-        logger.error(traceback.format_exc())
+        print(f"Error general: {str(e)}")
+        print("Traceback completo:")
+        traceback.print_exc()
         sys.exit(1)
     finally:
         # Limpiar memoria al finalizar
-        logger.info("Limpiando memoria final...")
+        print("Limpiando memoria final...")
         gc.collect()
         torch.cuda.empty_cache() if torch.cuda.is_available() else None
-        logger.info("Script finalizado")
+        print("Script finalizado")
 
 
