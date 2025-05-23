@@ -180,7 +180,7 @@ public Producto addProducto(Producto producto, String tokenHeader, String rutaIm
 
             System.out.println("Ejecutando script Python con ruta de imagen...");
             ProcessBuilder pb = new ProcessBuilder(
-                    "python", // se cambió de "python3" a "python"
+                    "python",
                     "-u",
                     scriptPath,
                     rutaImagenAbsoluta
@@ -223,22 +223,28 @@ public Producto addProducto(Producto producto, String tokenHeader, String rutaIm
             });
             outputThread.start();
 
-            boolean completed = process.waitFor(120, TimeUnit.SECONDS);
-            if (!completed) {
+            try {
+                boolean completed = process.waitFor(120, TimeUnit.SECONDS);
+                if (!completed) {
+                    process.destroyForcibly();
+                    throw new TiendaException("El proceso de detección excedió el tiempo límite de 2 minutos", HttpStatus.REQUEST_TIMEOUT);
+                }
+
+                outputThread.join(5000);
+
+                int exitCode = process.exitValue();
+                System.out.println("Código de salida del script Python: " + exitCode);
+                System.out.println("Salida completa del script: " + output.toString());
+
+                if (exitCode == 1) {
+                    throw new TiendaException("No se ha detectado ningún producto en la imagen. Ruta: " + rutaImagenAbsoluta + "\nSalida del script: " + output.toString(), HttpStatus.BAD_REQUEST);
+                } else if (exitCode != 0) {
+                    throw new TiendaException("Error al procesar la imagen: " + output.toString(), HttpStatus.INTERNAL_SERVER_ERROR);
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
                 process.destroyForcibly();
-                throw new TiendaException("El proceso de detección excedió el tiempo límite de 2 minutos", HttpStatus.REQUEST_TIMEOUT);
-            }
-
-            outputThread.join(5000);
-            int exitCode = process.exitValue();
-
-            System.out.println("Código de salida del script Python: " + exitCode);
-            System.out.println("Salida completa del script: " + output.toString());
-
-            if (exitCode == 1) {
-                throw new TiendaException("No se ha detectado ningún producto en la imagen. Ruta: " + rutaImagenAbsoluta + "\nSalida del script: " + output.toString(), HttpStatus.BAD_REQUEST);
-            } else if (exitCode != 0) {
-                throw new TiendaException("Error al procesar la imagen: " + output.toString(), HttpStatus.INTERNAL_SERVER_ERROR);
+                throw new TiendaException("El proceso de detección fue interrumpido", HttpStatus.INTERNAL_SERVER_ERROR);
             }
 
             System.out.println("Proceso de detección completado exitosamente");
