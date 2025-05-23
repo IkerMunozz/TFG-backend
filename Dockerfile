@@ -9,8 +9,8 @@ RUN mvn dependency:go-offline
 COPY src ./src
 RUN mvn clean package -DskipTests
 
-# Etapa 2: Imagen final con Python 3.9 y Java 21
-FROM python:3.9
+# Etapa 2: Imagen final con Python 3.10 y Java 21
+FROM python:3.10
 
 # Instalar Java 21 y herramientas necesarias
 RUN apt-get update && \
