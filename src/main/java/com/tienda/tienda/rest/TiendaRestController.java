@@ -58,10 +58,6 @@ public class TiendaRestController {
 
     private static final Logger logger = LoggerFactory.getLogger(TiendaRestController.class);
 
-    @GetMapping("/")
-    public String redirectToProducts() {
-        return "redirect:/api/v1/productos";
-    }
 
     public TiendaRestController(TiendaServicio tiendaServicio) {
         this.tiendaServicio = tiendaServicio;
