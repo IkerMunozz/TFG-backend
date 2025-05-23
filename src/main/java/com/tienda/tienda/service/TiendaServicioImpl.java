@@ -25,6 +25,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class TiendaServicioImpl implements TiendaServicio {
@@ -181,18 +183,44 @@ public Producto addProducto(Producto producto, String tokenHeader, String rutaIm
                     scriptPath,
                     rutaImagenAbsoluta 
             );
+            
+            // Configurar el entorno del proceso
+            Map<String, String> env = pb.environment();
+            env.put("PYTHONUNBUFFERED", "1");
+            env.put("TORCH_CUDA_VERSION", "cpu");
+            
+            // Redirigir la salida de error al mismo stream
             pb.redirectErrorStream(true);
+            
+            // Iniciar el proceso
             Process process = pb.start();
 
-            // Capturar tanto la salida estándar como los errores
-            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            String line;
-            while ((line = reader.readLine()) != null) {
-                System.out.println("Salida del script Python: " + line);
-                salidaPython.append(line).append("\n");
+            // Capturar la salida en un hilo separado
+            Thread outputThread = new Thread(() -> {
+                try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        System.out.println("Salida del script Python: " + line);
+                        salidaPython.append(line).append("\n");
+                    }
+                } catch (IOException e) {
+                    System.out.println("Error leyendo la salida del script: " + e.getMessage());
+                }
+            });
+            outputThread.start();
+
+            // Esperar a que el proceso termine con un timeout
+            boolean completed = process.waitFor(30, TimeUnit.SECONDS);
+            if (!completed) {
+                process.destroyForcibly();
+                System.out.println("ERROR: El script Python excedió el tiempo límite");
+                throw new TiendaException("El proceso de detección excedió el tiempo límite", HttpStatus.REQUEST_TIMEOUT);
             }
 
-            int exitCode = process.waitFor();
+            // Esperar a que el hilo de salida termine
+            outputThread.join(5000);
+
+            int exitCode = process.exitValue();
             System.out.println("Código de salida del script Python: " + exitCode);
 
             if (exitCode == 1) {
