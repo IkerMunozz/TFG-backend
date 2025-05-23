@@ -28,7 +28,6 @@ RUN mkdir -p /app/uploads /app/logs /tmp/logs && \
 
 # Copiar scripts y modelo
 COPY src/main/resources/python /app/python
-COPY src/main/resources/models /app/python/models
 
 # Dar permisos al script Python
 RUN chmod +x /app/python/detectar_objeto.py
