@@ -3,6 +3,7 @@ import sys
 import os
 import torch
 import logging
+import gc
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -25,11 +26,14 @@ def detect_objects(image_path):
             return False
             
         logger.info("Cargando modelo YOLO...")
+        # Configurar el modelo para usar CPU y optimizar memoria
         model = YOLO(model_path, task='detect')
+        model.to('cpu')  # Forzar uso de CPU
         logger.info("Modelo cargado correctamente")
         
         logger.info("Realizando detección...")
-        results = model(image_path, verbose=False, conf=0.25, iou=0.45)
+        # Reducir el tamaño de la imagen para ahorrar memoria
+        results = model(image_path, verbose=False, conf=0.25, iou=0.45, imgsz=640)
         predictions = results[0].boxes
         num_objects = len(predictions)
         logger.info(f"Número de objetos detectados: {num_objects}")
@@ -39,9 +43,13 @@ def detect_objects(image_path):
             for box in predictions:
                 logger.info(f"- Clase: {box.cls.item()}, Confianza: {box.conf.item():.2f}")
         
-        # Liberar memoria
+        # Liberar memoria explícitamente
         del model
+        del results
+        del predictions
+        gc.collect()
         torch.cuda.empty_cache() if torch.cuda.is_available() else None
+        
         return num_objects > 0
     except Exception as e:
         logger.error(f"Error durante la detección: {str(e)}")
@@ -51,31 +59,41 @@ def detect_objects(image_path):
         return False
 
 if __name__ == "__main__":
-    logger.info("=== Iniciando script de detección de objetos ===")
-    logger.info(f"Python version: {sys.version}")
-    logger.info(f"PyTorch version: {torch.__version__}")
-    logger.info(f"Directorio actual: {os.getcwd()}")
-    logger.info(f"Contenido del directorio actual: {os.listdir('.')}")
-    
-    if len(sys.argv) < 2:
-        logger.error("No se proporcionó la ruta de la imagen.")
-        sys.exit(2)
+    try:
+        logger.info("=== Iniciando script de detección de objetos ===")
+        logger.info(f"Python version: {sys.version}")
+        logger.info(f"PyTorch version: {torch.__version__}")
+        logger.info(f"Directorio actual: {os.getcwd()}")
+        logger.info(f"Contenido del directorio actual: {os.listdir('.')}")
+        
+        if len(sys.argv) < 2:
+            logger.error("No se proporcionó la ruta de la imagen.")
+            sys.exit(2)
 
-    image_path = sys.argv[1]
-    logger.info(f"Ruta de la imagen recibida: {image_path}")
+        image_path = sys.argv[1]
+        logger.info(f"Ruta de la imagen recibida: {image_path}")
 
-    if not os.path.exists(image_path):
-        logger.error(f"Imagen no encontrada en: {image_path}")
-        sys.exit(3)
+        if not os.path.exists(image_path):
+            logger.error(f"Imagen no encontrada en: {image_path}")
+            sys.exit(3)
 
-    logger.info(f"Tamaño de la imagen: {os.path.getsize(image_path)} bytes")
-    
-    found = detect_objects(image_path)
-    if found:
-        logger.info("Se detectaron objetos en la imagen")
-        sys.exit(0)
-    else:
-        logger.error("No se detectó ningún objeto en la imagen")
+        logger.info(f"Tamaño de la imagen: {os.path.getsize(image_path)} bytes")
+        
+        found = detect_objects(image_path)
+        if found:
+            logger.info("Se detectaron objetos en la imagen")
+            sys.exit(0)
+        else:
+            logger.error("No se detectó ningún objeto en la imagen")
+            sys.exit(1)
+    except Exception as e:
+        logger.error(f"Error general: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
         sys.exit(1)
+    finally:
+        # Limpiar memoria al finalizar
+        gc.collect()
+        torch.cuda.empty_cache() if torch.cuda.is_available() else None
 
 

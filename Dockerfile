@@ -43,9 +43,10 @@ RUN pip3 install --no-cache-dir ultralytics==8.0.0
 COPY --from=builder /app/target/*.jar app.jar
 
 # Configurar variables de entorno para Java y Python
-ENV JAVA_OPTS="-Xmx512m -Xms256m"
+ENV JAVA_OPTS="-Xmx1g -Xms512m -XX:+UseG1GC -XX:MaxGCPauseMillis=200"
 ENV PYTHONUNBUFFERED=1
 ENV PIP_NO_CACHE_DIR=1
+ENV TORCH_CUDA_VERSION=cpu
 
 # Verificar la instalación
 RUN echo "Verificando instalación..." && \
