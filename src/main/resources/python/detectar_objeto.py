@@ -56,7 +56,7 @@ def log_system_info():
             print(f"CUDA version: {torch.version.cuda}")
         print(f"Directorio actual: {os.getcwd()}")
         print(f"Contenido del directorio actual: {os.listdir('.')}")
-        print(f"Contenido del directorio models: {os.listdir('models')}")
+        print(f"Contenido del directorio models: {os.listdir(os.path.join(os.path.dirname(__file__), 'models'))}")
         print(f"Memoria disponible: {torch.cuda.get_device_properties(0).total_memory if torch.cuda.is_available() else 'CPU only'}")
     except Exception as e:
         print(f"Error al obtener información del sistema: {str(e)}")
@@ -119,10 +119,7 @@ def detect_objects(image_path):
 
 if __name__ == "__main__":
     try:
-        print("Script iniciado")
-        print(f"Directorio actual: {os.getcwd()}")
-        print(f"Contenido del directorio: {os.listdir('.')}")
-        print(f"Contenido de models: {os.listdir('models')}")
+
         
         if len(sys.argv) != 2:
             print("Uso: python detectar_objeto.py <ruta_imagen>")
