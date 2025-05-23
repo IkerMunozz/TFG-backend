@@ -14,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import ch.qos.logback.core.subst.Token;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import jakarta.transaction.Transactional;
 
@@ -157,7 +158,10 @@ public class TiendaRestController {
     
 
     
-    
+@GetMapping("/")
+public void redirectToProductos(HttpServletResponse response) throws IOException {
+    response.sendRedirect("/api/v1/productos");
+}
 
 
 @GetMapping("/productos")
