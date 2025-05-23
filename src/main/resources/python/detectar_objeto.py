@@ -10,8 +10,31 @@ from datetime import datetime
 
 # Configurar logging a archivo
 log_dir = '/app/logs'
-os.makedirs(log_dir, exist_ok=True)
-log_file = os.path.join(log_dir, f'detection_{datetime.now().strftime("%Y%m%d_%H%M%S")}.log')
+try:
+    # Intentar crear el directorio si no existe
+    if not os.path.exists(log_dir):
+        print(f"Creando directorio de logs en: {log_dir}")
+        os.makedirs(log_dir, exist_ok=True)
+        print(f"Directorio de logs creado exitosamente")
+    else:
+        print(f"El directorio de logs ya existe en: {log_dir}")
+    
+    # Verificar permisos
+    if not os.access(log_dir, os.W_OK):
+        print(f"ADVERTENCIA: No hay permisos de escritura en {log_dir}")
+        # Intentar cambiar permisos
+        os.chmod(log_dir, 0o777)
+        print(f"Permisos actualizados para {log_dir}")
+    
+    log_file = os.path.join(log_dir, f'detection_{datetime.now().strftime("%Y%m%d_%H%M%S")}.log')
+    print(f"Archivo de log será creado en: {log_file}")
+except Exception as e:
+    print(f"Error al configurar el directorio de logs: {str(e)}")
+    # Fallback a un directorio temporal
+    log_dir = '/tmp/logs'
+    os.makedirs(log_dir, exist_ok=True)
+    log_file = os.path.join(log_dir, f'detection_{datetime.now().strftime("%Y%m%d_%H%M%S")}.log')
+    print(f"Usando directorio temporal para logs: {log_file}")
 
 # Configurar logging
 logging.basicConfig(

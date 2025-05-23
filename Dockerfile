@@ -24,9 +24,12 @@ RUN apt-get update && \
 WORKDIR /app
 
 # Crear carpetas necesarias y dar permisos
-RUN mkdir -p /app/uploads /app/logs && \
-    chmod 777 /app/uploads && \
-    chmod 777 /app/logs
+RUN mkdir -p /app/uploads /app/logs /tmp/logs && \
+    chmod -R 777 /app/uploads && \
+    chmod -R 777 /app/logs && \
+    chmod -R 777 /tmp/logs && \
+    touch /app/logs/.keep && \
+    touch /tmp/logs/.keep
 
 # Copiar scripts Python y modelo
 COPY src/main/resources/python /app/python
@@ -52,12 +55,14 @@ ENV PIP_NO_CACHE_DIR=1
 ENV TORCH_CUDA_VERSION=cpu
 ENV PYTHONPATH=/app/python
 
-# Verificar la instalación
+# Verificar la instalación y permisos
 RUN echo "Verificando instalación..." && \
     python3 --version && \
     pip3 list && \
     ls -la /app/python && \
     ls -la /app/python/models && \
+    ls -la /app/logs && \
+    ls -la /tmp/logs && \
     echo "Instalación completada"
 
 ENTRYPOINT ["java", "-jar", "app.jar"]
