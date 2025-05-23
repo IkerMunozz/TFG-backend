@@ -65,7 +65,11 @@ def detect_objects(image_path):
     try:
         print("Iniciando detección de objetos...")
         print(f"Ruta de la imagen: {image_path}")
-        print(f"Modelo YOLO: {os.path.join(os.getcwd(), 'models', 'yolov8n.pt')}")
+        # Definir ruta absoluta a la carpeta models
+        models_dir = os.path.join(os.path.dirname(__file__), 'models')
+        model_path = os.path.join(models_dir, 'yolov8n.pt')
+        print(f"Modelo YOLO: {model_path}")
+        print(f"Contenido de models: {os.listdir(models_dir)}")
         
         # Verificar que la imagen existe
         if not os.path.exists(image_path):
@@ -84,7 +88,6 @@ def detect_objects(image_path):
         # Cargar el modelo YOLO
         print("Cargando modelo YOLO...")
         start_time = time.time()
-        model_path = os.path.join(os.path.dirname(__file__), 'models', 'yolov8n.pt')
         model = YOLO(model_path)
         print(f"Modelo cargado en {time.time() - start_time:.2f} segundos")
         
