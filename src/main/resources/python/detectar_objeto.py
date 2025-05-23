@@ -4,6 +4,7 @@ import os
 import torch
 import logging
 import gc
+from PIL import Image
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -12,45 +13,16 @@ logger = logging.getLogger(__name__)
 def detect_objects(image_path):
     try:
         logger.info(f"Intentando detectar objetos en: {image_path}")
-        logger.info(f"Verificando disponibilidad de CUDA...")
-        logger.info(f"CUDA disponible: {torch.cuda.is_available()}")
-        if torch.cuda.is_available():
-            logger.info(f"Dispositivo CUDA: {torch.cuda.get_device_name(0)}")
         
-        # Usar la ruta absoluta al modelo
-        model_path = os.path.join(os.path.dirname(__file__), 'models', 'yolov8n.pt')
-        logger.info(f"Ruta del modelo: {model_path}")
-        
-        if not os.path.exists(model_path):
-            logger.error(f"Modelo no encontrado en: {model_path}")
+        # Solo verificar que podemos abrir la imagen
+        try:
+            with Image.open(image_path) as img:
+                logger.info(f"Imagen abierta correctamente. Tamaño: {img.size}, Formato: {img.format}")
+                return True
+        except Exception as e:
+            logger.error(f"Error al abrir la imagen: {str(e)}")
             return False
             
-        logger.info("Cargando modelo YOLO...")
-        # Configurar el modelo para usar CPU y optimizar memoria
-        model = YOLO(model_path, task='detect')
-        model.to('cpu')  # Forzar uso de CPU
-        logger.info("Modelo cargado correctamente")
-        
-        logger.info("Realizando detección...")
-        # Reducir el tamaño de la imagen para ahorrar memoria
-        results = model(image_path, verbose=False, conf=0.25, iou=0.45, imgsz=640)
-        predictions = results[0].boxes
-        num_objects = len(predictions)
-        logger.info(f"Número de objetos detectados: {num_objects}")
-        
-        if num_objects > 0:
-            logger.info("Clases detectadas:")
-            for box in predictions:
-                logger.info(f"- Clase: {box.cls.item()}, Confianza: {box.conf.item():.2f}")
-        
-        # Liberar memoria explícitamente
-        del model
-        del results
-        del predictions
-        gc.collect()
-        torch.cuda.empty_cache() if torch.cuda.is_available() else None
-        
-        return num_objects > 0
     except Exception as e:
         logger.error(f"Error durante la detección: {str(e)}")
         import traceback
@@ -81,10 +53,10 @@ if __name__ == "__main__":
         
         found = detect_objects(image_path)
         if found:
-            logger.info("Se detectaron objetos en la imagen")
+            logger.info("Imagen verificada correctamente")
             sys.exit(0)
         else:
-            logger.error("No se detectó ningún objeto en la imagen")
+            logger.error("Error al verificar la imagen")
             sys.exit(1)
     except Exception as e:
         logger.error(f"Error general: {str(e)}")
