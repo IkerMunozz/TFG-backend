@@ -23,9 +23,10 @@ RUN apt-get update && \
 
 WORKDIR /app
 
-# Crear carpeta para uploads y dar permisos
-RUN mkdir -p /app/uploads && \
-    chmod 777 /app/uploads
+# Crear carpetas necesarias y dar permisos
+RUN mkdir -p /app/uploads /app/logs && \
+    chmod 777 /app/uploads && \
+    chmod 777 /app/logs
 
 # Copiar scripts Python y modelo
 COPY src/main/resources/python /app/python
@@ -36,20 +37,20 @@ RUN chmod +x /app/python/detectar_objeto.py
 
 # Instalar dependencias de Python paso a paso
 RUN pip3 install --upgrade pip && \
-    pip3 install --no-cache-dir numpy==1.24.3
-
-RUN pip3 install --no-cache-dir torch==2.0.1+cpu torchvision==0.15.2+cpu -f https://download.pytorch.org/whl/torch_stable.html
-
-RUN pip3 install --no-cache-dir ultralytics==8.0.0
+    pip3 install --no-cache-dir numpy==1.24.3 && \
+    pip3 install --no-cache-dir torch==2.0.1+cpu torchvision==0.15.2+cpu -f https://download.pytorch.org/whl/torch_stable.html && \
+    pip3 install --no-cache-dir ultralytics==8.0.0 && \
+    pip3 install --no-cache-dir Pillow==10.0.0
 
 # Copiar JAR construido
 COPY --from=builder /app/target/*.jar app.jar
 
 # Configurar variables de entorno para Java y Python
-ENV JAVA_OPTS="-Xmx1g -Xms512m -XX:+UseG1GC -XX:MaxGCPauseMillis=200"
+ENV JAVA_OPTS="-Xmx2g -Xms1g -XX:+UseG1GC -XX:MaxGCPauseMillis=200"
 ENV PYTHONUNBUFFERED=1
 ENV PIP_NO_CACHE_DIR=1
 ENV TORCH_CUDA_VERSION=cpu
+ENV PYTHONPATH=/app/python
 
 # Verificar la instalación
 RUN echo "Verificando instalación..." && \
