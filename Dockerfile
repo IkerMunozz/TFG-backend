@@ -60,6 +60,9 @@ RUN echo "✅ Instalación lista" && \
     ls -la /app/python && \
     ls -la /app/python/models
 
+COPY requirements.txt /app/requirements.txt
+RUN pip3 install --no-cache-dir -r /app/requirements.txt
+
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]
 
 
