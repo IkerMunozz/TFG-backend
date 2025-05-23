@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Swappy</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/index.css">
-  <link rel="stylesheet" href="/css/formularios.css">
-  <link rel="icon" type="image/png" href="/img/logotitle.jpg">
+  <link rel="stylesheet" href="/static/css/index.css">
+  <link rel="stylesheet" href="/static/css/formularios.css">
+  <link rel="icon" type="image/png" href="/static/img/logotitle.jpg">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
 
 </head>
@@ -15,7 +15,7 @@
   <header>
     <div class="header-top">
       <a href="/api/v1/productos">
-        <img src="/img/logo.png" alt="logo">
+        <img src="/static/img/logo.png" alt="logo">
       </a>      
       <nav>
         <span th:if="${logueado}">
@@ -47,7 +47,7 @@
   <div class="favorites-list" id="favorites-list">
     <div th:if="${productosFavoritos != null}">
       <div th:each="producto : ${productosFavoritos}" class="favorite-item">
-        <img th:src="@{'/uploads/' + ${producto.imagen}}" alt="Imagen del producto" />
+        <img th:src="@{'/static/uploads/' + ${producto.imagen}}" alt="Imagen del producto" />
         <div class="favorite-details">
           <h4 th:text="${producto.nombre}"></h4>
           <p th:text="${producto.descripcion}"></p>
@@ -79,7 +79,7 @@
   <div class="carrito-list" id="carrito-list">
     <div th:if="${productosEnCarrito != null}">
       <div th:each="producto : ${productosEnCarrito}" class="carrito-item">
-        <img th:src="@{'/uploads/' + ${producto.imagen}}" alt="Imagen del producto" />
+        <img th:src="@{'/static/uploads/' + ${producto.imagen}}" alt="Imagen del producto" />
         <div class="carrito-details">
           <h4 th:text="${producto.nombre}"></h4>
           <p th:text="${producto.descripcion}"></p>
@@ -125,7 +125,7 @@
     <div th:each="producto : ${productos}" 
          class="card" 
          th:attr="data-id=${producto.id}">
-      <img th:src="@{'/uploads/' + ${producto.imagen}}" alt="Imagen del producto" />
+      <img th:src="@{'/static/uploads/' + ${producto.imagen}}" alt="Imagen del producto" />
       <h3 th:text="${producto.nombre}"></h3>
       <p th:text="${producto.descripcion}"></p>
       <span class="price" th:text="${#strings.concat(producto.precio, ' €')}"></span>
@@ -151,7 +151,7 @@
 <footer class="footer">
     <div class="footer-top">
       <div class="footer-logo">
-        <img src="/img/logo.png" alt="Logo" />
+        <img src="/static/img/logo.png" alt="Logo" />
         <p>© Swappy. Todos los derechos reservados</p>
       </div>
   
