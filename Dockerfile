@@ -54,6 +54,8 @@ ENV PYTHONUNBUFFERED=1
 ENV PIP_NO_CACHE_DIR=1
 ENV TORCH_CUDA_VERSION=cpu
 ENV PYTHONPATH=/app/python
+ENV PYTHONIOENCODING=utf-8
+ENV PYTHONHASHSEED=0
 
 # Verificar la instalación y permisos
 RUN echo "Verificando instalación..." && \
