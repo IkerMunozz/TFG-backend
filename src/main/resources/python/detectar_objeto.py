@@ -16,57 +16,60 @@ def detect_objects(image_path):
     try:
         print("Iniciando detección de objetos...")
         print(f"Ruta de la imagen: {image_path}")
-        # Definir ruta absoluta a la carpeta models
+        
+        # Ruta del modelo
         models_dir = os.path.join(os.path.dirname(__file__), 'models')
         model_path = os.path.join(models_dir, 'yolov8n.pt')
         print(f"Modelo YOLO: {model_path}")
-        print(f"Contenido de models: {os.listdir(models_dir)}")
         
-        # Verificar que la imagen existe
+        # Verificar imagen
         if not os.path.exists(image_path):
-            print(f"La imagen no existe en la ruta: {image_path}")
+            print(f"La imagen no existe: {image_path}")
             return False
         
-        # Cargar y redimensionar la imagen
-        print("Cargando imagen...")
-        image = Image.open(image_path)
-        print(f"Tamaño original de la imagen: {image.size}")
-        
-        # Redimensionar la imagen a 640x640
+        # Cargar imagen y forzar a RGB
+        image = Image.open(image_path).convert("RGB")
         image = image.resize((640, 640))
-        print(f"Tamaño redimensionado: {image.size}")
         
-        # Cargar el modelo YOLO
-        print("Cargando modelo YOLO...")
-        start_time = time.time()
+        # Cargar modelo
         model = YOLO(model_path)
-        print(f"Modelo cargado en {time.time() - start_time:.2f} segundos")
         
-        # Realizar la detección
-        print("Iniciando detección...")
+        # Detectar con mayor umbral de confianza
         results = model(image, conf=0.6)
-        print(f"Detección completada en {time.time() - start_time:.2f} segundos")
         
-        # Verificar resultados
-        if len(results) > 0 and len(results[0].boxes) > 0:
-            print(f"Objetos detectados: {len(results[0].boxes)}")
-            for box in results[0].boxes:
-                print(f"Confianza: {box.conf[0]:.2f}, Clase: {box.cls[0]}")
-            return True
-        else:
-            print("No se detectaron objetos en la imagen")
+        boxes = results[0].boxes
+
+        # Asegurar que boxes no es None
+        if boxes is None or len(boxes) == 0:
+            print("❌ No se detectaron objetos.")
             return False
-            
+
+        # Verificar que cada detección tenga confianza > 0.6 (ya filtrado, pero por seguridad)
+        objetos_validos = 0
+        for box in boxes:
+            conf = float(box.conf[0])
+            if conf >= 0.6:
+                objetos_validos += 1
+                print(f"✅ Objeto válido detectado. Confianza: {conf:.2f}, Clase: {int(box.cls[0])}")
+
+        if objetos_validos == 0:
+            print("⚠️ Detecciones descartadas por baja confianza.")
+            return False
+        else:
+            print(f"🎯 Se detectaron {objetos_validos} objetos válidos.")
+            return True
+
     except Exception as e:
-        print(f"Error durante la detección: {str(e)}")
+        print(f"Error en la detección: {e}")
         traceback.print_exc()
         return False
+
     finally:
-        # Limpiar memoria
         gc.collect()
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
-        print("Memoria liberada")
+        print("🧹 Memoria liberada.")
+
 
 
 
