@@ -44,7 +44,7 @@ def detect_objects(image_path):
         
         # Realizar la detección
         print("Iniciando detección...")
-        results = model(image, conf=0.25)
+        results = model(image, conf=0.6)
         print(f"Detección completada en {time.time() - start_time:.2f} segundos")
         
         # Verificar resultados
