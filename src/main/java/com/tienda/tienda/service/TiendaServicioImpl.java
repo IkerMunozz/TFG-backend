@@ -239,7 +239,7 @@ public Producto addProducto(Producto producto, String tokenHeader, String rutaIm
                 System.out.flush(); // Forzar escritura inmediata
 
                 if (exitCode == 1) {
-                    throw new TiendaException("No se ha detectado ningún producto en la imagen. Ruta: " + rutaImagenAbsoluta + "\nSalida del script: " + output.toString(), HttpStatus.BAD_REQUEST);
+                    throw new TiendaException("No se ha detectado ningún producto en la imagen.", HttpStatus.BAD_REQUEST);
                 } else if (exitCode != 0) {
                     throw new TiendaException("Error al procesar la imagen: " + output.toString(), HttpStatus.INTERNAL_SERVER_ERROR);
                 }

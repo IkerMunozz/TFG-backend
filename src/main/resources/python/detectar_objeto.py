@@ -67,7 +67,7 @@ def detect_objects(image_path):
         print(f"Ruta de la imagen: {image_path}")
         # Definir ruta absoluta a la carpeta models
         models_dir = os.path.join(os.path.dirname(__file__), 'models')
-        model_path = os.path.join(models_dir, 'yolov8n.pt')
+        model_path = os.path.join(models_dir, 'model.pt')
         print(f"Modelo YOLO: {model_path}")
         print(f"Contenido de models: {os.listdir(models_dir)}")
         
